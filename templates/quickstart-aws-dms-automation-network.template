@@ -1,0 +1,688 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "DMS Automation Network stack which manages vpc and subnets. It creates two public and two private subnets, one in each AWS availability zone into a newly created VPC.",
+    "Metadata": {
+        "LICENSE": "Apache License Version 2.0",
+        "AWS::CloudFormation::Interface": {
+            "ParameterGroups": [
+                {
+                    "Label": {
+                        "default": "Peer-Parent Stack Configuration"
+                    },
+                    "Parameters": [
+                        "ParentStack"
+                    ]
+                },
+                {
+                    "Label": {
+                        "default": "Network Configuration"
+                    },
+                    "Parameters": [
+                        "AvailabilityZones",
+                        "VPCCIDR",
+                        "PrivateSubnet1CIDR",
+                        "PrivateSubnet2CIDR",
+                        "PublicSubnet1CIDR",
+                        "PublicSubnet2CIDR"
+                    ]
+                },
+                {
+                    "Label": {
+                        "default": "Administration Configuration"
+                    },
+                    "Parameters": [
+                        "AdminEmailAddress"
+                    ]
+                }
+            ],
+            "ParameterLabels": {
+                "ParentStack": {
+                    "default": "Parent Stack"
+                },
+                "AvailabilityZones": {
+                    "default": "Availability Zones"
+                },
+                "VPCCIDR": {
+                    "default": "VPC CIDR"
+                },
+                "PrivateSubnet1CIDR": {
+                    "default": "Private Subnet 1 CIDR"
+                },
+                "PrivateSubnet2CIDR": {
+                    "default": "Private Subnet 2 CIDR"
+                },
+                "PublicSubnet1CIDR": {
+                    "default": "Public Subnet 1 CIDR"
+                },
+                "PublicSubnet2CIDR": {
+                    "default": "Public Subnet 2 CIDR"
+                }
+            }
+        }
+    },
+    "Parameters": {
+
+        "ParentStack": {
+            "Description": "Parent stack name by which network stack is deriving if any.",
+            "MinLength": 1,
+            "MaxLength": 256,
+            "Type": "String"
+        },
+        "AvailabilityZones": {
+            "Description": "List of Availability Zones to use for the subnets in the VPC. Note: The logical order is preserved (2 AZs are used for this deployment)",
+            "Type": "List<AWS::EC2::AvailabilityZone::Name>"
+        },
+        "VPCCIDR": {
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$",
+            "ConstraintDescription": "Must be a valid IP CIDR range of the form x.x.x.x/x. (e.g. 10.0.0.0/16)",
+            "Default": "10.0.0.0/16",
+            "Description": "CIDR block should be used to create the VPC (e.g. 10.0.0.0/16)",
+            "Type": "String"
+        },
+        "PrivateSubnet1CIDR": {
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$",
+            "ConstraintDescription": "Must be a valid IP CIDR range of the form x.x.x.x/x. (e.g. 10.0.2.0/24)",
+            "Default": "10.0.2.0/24",
+            "Description": "CIDR block should be used to create the private subnet in Availability Zone 1 (e.g. 10.0.2.0/24)",
+            "Type": "String"
+        },
+        "PrivateSubnet2CIDR": {
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$",
+            "ConstraintDescription": "Must be a valid IP CIDR range of the form x.x.x.x/x. (e.g. 10.0.3.0/24)",
+            "Default": "10.0.3.0/24",
+            "Description": "CIDR block should be used to create the private subnet in Availability Zone 2 (e.g. 10.0.3.0/24)",
+            "Type": "String"
+        },
+        "PublicSubnet1CIDR": {
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$",
+            "ConstraintDescription": "Must be a valid IP CIDR range of the form x.x.x.x/x. (e.g. 10.0.0.0/24)",
+            "Default": "10.0.0.0/24",
+            "Description": "CIDR block should be used to create the public subnet in Availability Zone 1 (e.g. 10.0.0.0/24)",
+            "Type": "String"
+        },
+        "PublicSubnet2CIDR": {
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$",
+            "ConstraintDescription": "Must be a valid IP CIDR range of the form x.x.x.x/x. (e.g. 10.0.1.0/24)",
+            "Default": "10.0.1.0/24",
+            "Description": "CIDR block should be used to create the public subnet in Availability Zone 2 (e.g. 10.0.1.0/24)",
+            "Type": "String"
+        }
+    },
+
+    "Resources": {
+        "VPC": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": {
+                    "Ref": "VPCCIDR"
+                },
+                "EnableDnsHostnames": true,
+                "EnableDnsSupport": true,
+                "InstanceTenancy": "default",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Sub": "${AWS::StackName}-VPC"
+                        }
+                    },
+                    {
+                        "Key": "Product",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "Solution",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "dms:cloudformation:stack-name",
+                        "Value": {
+                            "Fn::Sub": "${ParentStack}"
+                        }
+                    }
+                ]
+            }
+        },
+        "PublicSubnet1": {
+            "Type": "AWS::EC2::Subnet",
+            "DependsOn": "VPC",
+            "Properties": {
+                "AvailabilityZone": {
+                    "Fn::Select": [
+                        "0",
+                        {
+                            "Ref": "AvailabilityZones"
+                        }
+                    ]
+                },
+                "CidrBlock": {
+                    "Ref": "PublicSubnet1CIDR"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Sub": "${AWS::StackName}-PublicSubnet1"
+                        }
+                    },
+                    {
+                        "Key": "Product",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "Solution",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "dms:cloudformation:stack-name",
+                        "Value": {
+                            "Fn::Sub": "${ParentStack}"
+                        }
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "VPC"
+                }
+            }
+        },
+        "PublicSubnet2": {
+            "Type": "AWS::EC2::Subnet",
+            "DependsOn": "VPC",
+            "Properties": {
+                "AvailabilityZone": {
+                    "Fn::Select": [
+                        "1",
+                        {
+                            "Ref": "AvailabilityZones"
+                        }
+                    ]
+                },
+                "CidrBlock": {
+                    "Ref": "PublicSubnet2CIDR"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Sub": "${AWS::StackName}-PublicSubnet2"
+                        }
+                    },
+                    {
+                        "Key": "Product",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "Solution",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "dms:cloudformation:stack-name",
+                        "Value": {
+                            "Fn::Sub": "${ParentStack}"
+                        }
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "VPC"
+                }
+            }
+        },
+        "PrivateSubnet1": {
+            "Type": "AWS::EC2::Subnet",
+            "DependsOn": "VPC",
+            "Properties": {
+                "AvailabilityZone": {
+                    "Fn::Select": [
+                        "0",
+                        {
+                            "Ref": "AvailabilityZones"
+                        }
+                    ]
+                },
+                "CidrBlock": {
+                    "Ref": "PrivateSubnet1CIDR"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Sub": "${AWS::StackName}-PrivateSubnet1"
+                        }
+                    },
+                    {
+                        "Key": "Product",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "Solution",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "dms:cloudformation:stack-name",
+                        "Value": {
+                            "Fn::Sub": "${ParentStack}"
+                        }
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "VPC"
+                }
+            }
+        },
+        "PrivateSubnet2": {
+            "Type": "AWS::EC2::Subnet",
+            "DependsOn": "VPC",
+            "Properties": {
+                "AvailabilityZone": {
+                    "Fn::Select": [
+                        "1",
+                        {
+                            "Ref": "AvailabilityZones"
+                        }
+                    ]
+                },
+                "CidrBlock": {
+                    "Ref": "PrivateSubnet2CIDR"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Sub": "${AWS::StackName}-PrivateSubnet2"
+                        }
+                    },
+                    {
+                        "Key": "Product",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "Solution",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "dms:cloudformation:stack-name",
+                        "Value": {
+                            "Fn::Sub": "${ParentStack}"
+                        }
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "VPC"
+                }
+            }
+        },
+        "PublicRouteTable1": {
+            "Type": "AWS::EC2::RouteTable",
+            "DependsOn": "VPC",
+            "Properties": {
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Sub": "${AWS::StackName}-PublicRouteTable1"
+                        }
+                    },
+                    {
+                        "Key": "Product",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "Solution",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "dms:cloudformation:stack-name",
+                        "Value": {
+                            "Fn::Sub": "${ParentStack}"
+                        }
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "VPC"
+                }
+            }
+        },
+        "PrivateRouteTable1": {
+            "Type": "AWS::EC2::RouteTable",
+            "DependsOn": "VPC",
+            "Properties": {
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Sub": "${AWS::StackName}-PrivateRouteTable1"
+                        }
+                    },
+                    {
+                        "Key": "Product",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "Solution",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "dms:cloudformation:stack-name",
+                        "Value": {
+                            "Fn::Sub": "${ParentStack}"
+                        }
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "VPC"
+                }
+            }
+        },
+        "PrivateRouteTable2": {
+            "Type": "AWS::EC2::RouteTable",
+            "DependsOn": "VPC",
+            "Properties": {
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Sub": "${AWS::StackName}-PrivateRouteTable2"
+                        }
+                    },
+                    {
+                        "Key": "Product",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "Solution",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "dms:cloudformation:stack-name",
+                        "Value": {
+                            "Fn::Sub": "${ParentStack}"
+                        }
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "VPC"
+                }
+            }
+        },
+        "PublicRoute1": {
+            "Type": "AWS::EC2::Route",
+            "DependsOn": "GatewayToInternet",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": {
+                    "Ref": "InternetGateway"
+                },
+                "RouteTableId": {
+                    "Ref": "PublicRouteTable1"
+                }
+            }
+        },
+        "PrivateRoute1": {
+            "Type": "AWS::EC2::Route",
+            "DependsOn": "GatewayToInternet",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "NatGatewayId": {
+                    "Ref": "NATGateway1"
+                },
+                "RouteTableId": {
+                    "Ref": "PrivateRouteTable1"
+                }
+            }
+        },
+        "PrivateRoute2": {
+            "Type": "AWS::EC2::Route",
+            "DependsOn": "GatewayToInternet",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "NatGatewayId": {
+                    "Ref": "NATGateway2"
+                },
+                "RouteTableId": {
+                    "Ref": "PrivateRouteTable2"
+                }
+            }
+        },
+        "PublicSubnetRouteTableAssociation1": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "DependsOn": [
+                "PublicRouteTable1",
+                "PublicSubnet1"
+            ],
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "PublicRouteTable1"
+                },
+                "SubnetId": {
+                    "Ref": "PublicSubnet1"
+                }
+            }
+        },
+        "PublicSubnetRouteTableAssociation2": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "DependsOn": [
+                "PublicRouteTable1",
+                "PublicSubnet2"
+            ],
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "PublicRouteTable1"
+                },
+                "SubnetId": {
+                    "Ref": "PublicSubnet2"
+                }
+            }
+        },
+        "PrivateSubnetRouteTableAssociation1": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "DependsOn": [
+                "PrivateRouteTable1",
+                "PrivateSubnet1"
+            ],
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "PrivateRouteTable1"
+                },
+                "SubnetId": {
+                    "Ref": "PrivateSubnet1"
+                }
+            }
+        },
+        "PrivateSubnetRouteTableAssociation2": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "DependsOn": [
+                "PrivateRouteTable2",
+                "PrivateSubnet2"
+            ],
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "PrivateRouteTable2"
+                },
+                "SubnetId": {
+                    "Ref": "PrivateSubnet2"
+                }
+            }
+        },
+        "InternetGateway": {
+            "Type": "AWS::EC2::InternetGateway",
+            "Properties": {
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Sub": "${AWS::StackName}-InternetGateway"
+                        }
+                    },
+                    {
+                        "Key": "Product",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "Solution",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "dms:cloudformation:stack-name",
+                        "Value": {
+                            "Fn::Sub": "${ParentStack}"
+                        }
+                    }
+                ]
+            }
+        },
+        "GatewayToInternet": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "DependsOn": [
+                "InternetGateway",
+                "VPC"
+            ],
+            "Properties": {
+                "InternetGatewayId": {
+                    "Ref": "InternetGateway"
+                },
+                "VpcId": {
+                    "Ref": "VPC"
+                }
+            }
+        },
+        "NATGatewayEIP1": {
+            "Type": "AWS::EC2::EIP",
+            "DependsOn": "InternetGateway",
+            "Properties": {
+                "Domain": {
+                    "Ref": "VPC"
+                }
+            }
+        },
+        "NATGatewayEIP2": {
+            "Type": "AWS::EC2::EIP",
+            "Condition": "cIsProductionEnvironment",
+            "DependsOn": "InternetGateway",
+            "Properties": {
+                "Domain": {
+                    "Ref": "VPC"
+                }
+            }
+        },
+        "NATGateway1": {
+            "Type": "AWS::EC2::NatGateway",
+            "DependsOn": [
+                "GatewayToInternet",
+                "NATGatewayEIP1",
+                "PublicSubnet1"
+            ],
+            "Properties": {
+                "AllocationId": {
+                    "Fn::GetAtt": [
+                        "NATGatewayEIP1",
+                        "AllocationId"
+                    ]
+                },
+                "SubnetId": {
+                    "Ref": "PublicSubnet1"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Sub": "${AWS::StackName}-NATGateway1"
+                        }
+                    },
+                    {
+                        "Key": "Product",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "Solution",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "dms:cloudformation:stack-name",
+                        "Value": {
+                            "Fn::Sub": "${ParentStack}"
+                        }
+                    }
+                ]
+            }
+        },
+        "NATGateway2": {
+            "Type": "AWS::EC2::NatGateway",
+            "DependsOn": [
+                "GatewayToInternet",
+                "NATGatewayEIP2",
+                "PublicSubnet2"
+            ],
+            "Properties": {
+                "AllocationId": {
+                    "Fn::GetAtt": [
+                        "NATGatewayEIP2",
+                        "AllocationId"
+                    ]
+                },
+                "SubnetId": {
+                    "Ref": "PublicSubnet2"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Sub": "${AWS::StackName}-NATGateway2"
+                        }
+                    },
+                    {
+                        "Key": "Product",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "Solution",
+                        "Value": "DMS-Automation-Network"
+                    },
+                    {
+                        "Key": "dms:cloudformation:stack-name",
+                        "Value": {
+                            "Fn::Sub": "${ParentStack}"
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    "Outputs": {
+        "NetworkStackName": {
+            "Description": "Network stack name",
+            "Value": {
+                "Ref": "AWS::StackName"
+            }
+        },
+        "VPCID": {
+            "Description": "VPC ID",
+            "Value": {
+                "Ref": "VPC"
+            }
+        },
+        "PublicSubnet1ID": {
+            "Description": "Public subnet 1 ID in availability zone 1",
+            "Value": {
+                "Ref": "PublicSubnet1"
+            }
+        },
+        "PublicSubnet2ID": {
+            "Description": "Public subnet 2 ID in availability zone 2",
+            "Value": {
+                "Ref": "PublicSubnet2"
+            }
+        },
+        "PrivateSubnet1ID": {
+            "Description": "Private subnet 1 ID in availability zone 1",
+            "Value": {
+                "Ref": "PrivateSubnet1"
+            }
+        },
+        "PrivateSubnet2ID": {
+            "Description": "Private subnet 2 ID in availability zone 2",
+            "Value": {
+                "Ref": "PrivateSubnet2"
+            }
+        }
+    }
+}
