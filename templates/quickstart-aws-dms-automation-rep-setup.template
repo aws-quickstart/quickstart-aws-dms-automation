@@ -43,9 +43,20 @@
             "TargetEndpointServer",
             "TargetUser"
           ]
+        },
+        {
+          "Label":{
+            "default":"Lambda Layer Configuration"
+          },
+          "Parameters": [
+            "LayerBucket",
+            "LayerKey"
+          ]
         }
       ],
       "ParameterLabels": {
+        "LayerBucket": {"default": "Layer S3 Bucket"},
+        "LayerKey": {"default": "Layer S3 Key"},
         "SourceDBName": {"default": "Source Database Name"},
         "SourceEngine": {"default": "Source Database Engine"},
         "SourcePassword": {"default": "Source Database Password"},
@@ -189,6 +200,14 @@
     "TargetUser":{
       "Type": "String",
       "Description":"Target database user name"
+    },
+    "LayerBucket":{
+      "Type":"String",
+      "Description": "S3 bucket of the packaged zip file eg: test-bucket-1234"
+    },
+    "LayerKey":{
+      "Type": "String",
+      "Description":"S3 location of the packaged zip file eg: folder/sub-folder/test.zip"
     }
   },
   "Resources": {
@@ -309,6 +328,149 @@
         ]
       },
       "Type": "AWS::DMS::ReplicationSubnetGroup"
+    },
+    "CheckEndpointConnection":{
+      "Type":"Custom::DmsEndpointConnectionTester",
+      "Properties":{
+        "ServiceToken":{
+          "Fn::GetAtt":["DmsEndpointConnTest","Arn"]
+        },
+        "SourceArn":{"Ref":"SourceEndpoint"},
+        "TargetArn":{"Ref":"TargetEndpoint"},
+        "ReplicationInstanceArn":{"Ref":"ReplicationInstance"}
+      }
+    },
+    "DmsEndpointConnTestRole":{
+      "Type":"AWS::IAM::Role",
+      "Properties":{
+        "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {
+                        "Service": "lambda.amazonaws.com"
+                    },
+                    "Action": "sts:AssumeRole"
+                }
+            ]
+        },
+        "ManagedPolicyArns": [
+            "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        ],
+        "Path": "/",
+        "Policies": [
+            {
+                "PolicyName": "dms-connection-access",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                              "dms:DescribeConnections",
+                              "dms:TestConnection"
+                            ],
+                            "Resource": "*"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+      },
+      "DmsEndpointConnTestLayer":{
+        "Type": "AWS::Lambda::LayerVersion",
+        "Properties": {
+            "CompatibleRuntimes": [
+                "python3.6",
+                "python3.7"
+            ],
+            "Content": {
+                "S3Bucket": {"Ref":"LayerBucket"},
+                "S3Key": {"Ref":"LayerKey"}
+            },
+            "Description": "Latest boto3 layer for DMS wait handler"
+        }
+
+      },
+      "DmsEndpointConnTest":{
+        "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Description": "Checks the connection between DMS replication instance and DMS endpoint",
+                "Handler":"index.lambda_handler",
+                "Runtime":"python3.6",
+                "Role":{"Fn::GetAtt":["DmsEndpointConnTestRole","Arn"]},
+                "Timeout": 600,
+                "Layers":[{"Ref":"DmsEndpointConnTestLayer"}],
+                "Code": {
+                    "ZipFile": {
+                        "Fn::Join": [
+                            "\n",
+                            [
+                              "import cfnresponse",
+                              "import json",
+                              "import boto3",
+                              "",
+                              "def lambda_handler(event, context):",
+                              "    source_endpoint = event['ResourceProperties']['SourceArn']",
+                              "    target_endpoint = event['ResourceProperties']['TargetArn']",
+                              "    replication_inst = event['ResourceProperties']['ReplicationInstanceArn']",
+                              "    if 'Create' or 'Update' in event['RequestType']:",
+                              "        print ('This is a %s event' %(event['RequestType']))",
+                              "        print('Checking connection for Source .....')",
+                              "        source_result = check_connection(source_endpoint,replication_inst)",
+                              "        print('Source result was %s' %(source_result))",
+                              "        if 'success' in source_result:",
+                              "            print('Proceeding to check connection for Target ....')",
+                              "            target_result = check_connection(target_endpoint,replication_inst)",
+                              "            print('Target result was %s' %(target_result))",
+                              "            if 'success' in target_result:",
+                              "                cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')",
+                              "            else:",
+                              "                print('Target connection failed')",
+                              "                cfnresponse.send(event, context, cfnresponse.FAILED, {}, '')",
+                              "        else:",
+                              "            print('Source connection failed')",
+                              "            cfnresponse.send(event, context, cfnresponse.FAILED, {}, '')",
+                              "    else:",
+                              "        print('Delete event nothing will be done')",
+                              "        cfnresponse.send(event, context, cfnresponse.FAILED, {}, '')",
+                              "def check_connection(endpoint,rep):",
+                              "    dms = boto3.client('dms')",
+                              "    dms.test_connection(ReplicationInstanceArn=rep,EndpointArn=endpoint)",
+                              "    waiter = dms.get_waiter('test_connection_succeeds')",
+                              "    waiter.wait(",
+                              "        Filters=[",
+                              "            {",
+                              "                'Name': 'endpoint-arn',",
+                              "                'Values': [endpoint]",
+                              "            },",
+                              "            {",
+                              "                'Name': 'replication-instance-arn',",
+                              "                'Values':[rep]",
+                              "            }", "        ]",
+                              "    )",
+                              "    status_conn_api = dms.describe_connections(",
+                              "        Filters=[",
+                              "            {",
+                              "                'Name': 'endpoint-arn',",
+                              "                'Values': [endpoint]",
+                              "            },",
+                              "            {",
+                              "                'Name': 'replication-instance-arn',",
+                              "                'Values': [rep]",
+                              "            }",
+                              "        ]",
+                              "    )",
+                              "    stat_task = status_conn_api['Connections'][0]['Status']",
+                              "    print('The connection test was %s' %(stat_task))",
+                              "    return (stat_task)"
+                            ]
+                          ]
+                        }
+                      }
+                    }
+      }
     }
   }
-}
