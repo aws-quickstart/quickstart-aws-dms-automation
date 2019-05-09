@@ -1,0 +1,314 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "DMS Automation Network stack which creates the Endpoints and Replication Instances.",
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "DMS Replication Instance Configuration"
+          },
+          "Parameters": [
+            "Subnets",
+            "VPCID",
+            "SecurityGroup",
+            "InstanceType",
+            "EngineVersion",
+            "PublicAccess",
+            "MultiAz"
+          ]
+        },
+        {
+          "Label":{
+            "default":"Source Database Configuration"
+          },
+          "Parameters": [
+            "SourceDBName",
+            "SourceEngine",
+            "SourcePassword",
+            "SourcePort",
+            "SourceEndpointServer",
+            "SourceUser"
+          ]
+        },
+        {
+          "Label":{
+            "default":"Target Database Configuration"
+          },
+          "Parameters": [
+            "TargetDBName",
+            "TargetEngine",
+            "TargetPassword",
+            "TargetPort",
+            "TargetEndpointServer",
+            "TargetUser"
+          ]
+        }
+      ],
+      "ParameterLabels": {
+        "SourceDBName": {"default": "Source Database Name"},
+        "SourceEngine": {"default": "Source Database Engine"},
+        "SourcePassword": {"default": "Source Database Password"},
+        "SourcePort": {"default": "Source Database Port"},
+        "SourceEndpointServer": {"default": "Source Database Endpoint"},
+        "SourceUser": {"default": "Source Database Username"},
+        "TargetDBName": {"default": "Target Database Name"},
+        "TargetEngine": {"default": "Target Database Engine"},
+        "TargetPassword": {"default": "Target Database Password"},
+        "TargetPort": {"default": "Target Database Port"},
+        "TargetEndpointServer": {"default": "Target Database Endpoint"},
+        "TargetUser": {"default": "Target Database Username"},
+        "EngineVersion": {
+          "default": "Replication Engine Version"
+        },
+        "InstanceType": {
+          "default": "Instance Type"
+        },
+        "MultiAz": {
+          "default": "Enable MultiAZ"
+        },
+        "PublicAccess": {
+          "default": "Allow Public Access"
+        },
+        "SecurityGroup": {
+          "default": "Security Group"
+        },
+        "Subnets": {
+          "default": "Subnet IDs"
+        },
+        "VPCID": {
+          "default": "VPC ID"
+        }
+      }
+    },
+    "LICENSE": "Apache License Version 2.0"
+  },
+  "Parameters": {
+    "EngineVersion": {
+      "AllowedValues": [
+        "3.1.3",
+        "2.4.5",
+        "2.4.4",
+        "2.4.3"
+      ],
+      "Description": "DMS replication engine version",
+      "Type": "String"
+    },
+    "InstanceType": {
+      "AllowedValues": [
+        "dms.t2.micro",
+        "dms.t2.small",
+        "dms.t2.medium",
+        "dms.t2.large",
+        "dms.c4.large",
+        "dms.c4.xlarge",
+        "dms.c4.2xlarge",
+        "dms.c4.4xlarge"
+      ],
+      "Description": "DMS replication instance type",
+      "Type": "String"
+    },
+    "MultiAz": {
+      "AllowedValues": [
+        "true",
+        "false"
+      ],
+      "Default": "false",
+      "Description": "Enable MultiAZ",
+      "Type": "String"
+    },
+    "PublicAccess": {
+      "AllowedValues": [
+        "true",
+        "false"
+      ],
+      "Default": "false",
+      "Description": "Publicly Accessible",
+      "Type": "String"
+    },
+    "SecurityGroup": {
+      "Description": "Security group ID for DMS replication instance (e.g., sg-1234abcd)",
+      "Type": "AWS::EC2::SecurityGroup::Id"
+    },
+    "Subnets": {
+      "Description": "Choose two subnets in different availability zones (e.g., subnet-1234abcd, subnet-abcd1234)",
+      "Type": "List<AWS::EC2::Subnet::Id>"
+    },
+    "VPCID": {
+      "Description": "ID of your existing VPC for deployment(e.g., vpc-fd990584)",
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "SourceDBName":{
+      "Type":"String",
+      "Description": "Name of the database in source server"
+    },
+    "SourceEngine":{
+      "Type":"String",
+      "Description":"Database engine running on the source",
+      "AllowedValues":["mysql", "oracle", "postgres", "mariadb", "aurora", "aurora-postgresql", "redshift", "db2", "azuredb", "sybase", "sqlserver"]
+    },
+    "SourcePassword":{
+      "Type":"String",
+      "Description":"Source database password",
+      "NoEcho":"true"
+    },
+    "SourcePort":{
+      "Type":"String",
+      "Description":"Port on which the source database is running"
+    },
+    "SourceEndpointServer":{
+      "Type":"String",
+      "Description": "Source database hostname, endpoint URL or IP address"
+    },
+    "SourceUser":{
+      "Type": "String",
+      "Description":"Source database user name"
+    },
+    "TargetDBName":{
+      "Type":"String",
+      "Description": "Name of the database in target server"
+    },
+    "TargetEngine":{
+      "Type":"String",
+      "Description":"Database engine running on the target",
+      "AllowedValues":["mysql", "oracle", "postgres", "mariadb", "aurora", "aurora-postgresql", "redshift", "db2", "azuredb", "sybase", "sqlserver"]
+    },
+    "TargetPassword":{
+      "Type":"String",
+      "Description":"Target database password",
+      "NoEcho":"true"
+    },
+    "TargetPort":{
+      "Type":"String",
+      "Description":"Port on which the target database is running"
+    },
+    "TargetEndpointServer":{
+      "Type":"String",
+      "Description": "Target database hostname, endpoint URL or IP address"
+    },
+    "TargetUser":{
+      "Type": "String",
+      "Description":"Target database user name"
+    }
+  },
+  "Resources": {
+    "ReplicationInstance": {
+      "Properties": {
+        "EngineVersion": {
+          "Ref": "EngineVersion"
+        },
+        "MultiAZ": {
+          "Ref": "MultiAz"
+        },
+        "PubliclyAccessible": {
+          "Ref": "PublicAccess"
+        },
+        "ReplicationInstanceClass": {
+          "Ref": "InstanceType"
+        },
+        "ReplicationSubnetGroupIdentifier": {
+          "Ref": "ReplicationSubnetGroup"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-ReplicationSetup"
+            }
+          },
+          {
+            "Key": "Product",
+            "Value": "DMS-Automation-ReplicationSetup"
+          },
+          {
+            "Key": "Solution",
+            "Value": "DMS-Automation-ReplicationSetup"
+          }
+        ],
+        "VpcSecurityGroupIds": [
+          {
+            "Ref": "SecurityGroup"
+          }
+        ]
+      },
+      "Type": "AWS::DMS::ReplicationInstance"
+    },
+    "SourceEndpoint":{
+      "Type": "AWS::DMS::Endpoint",
+      "Properties" : {
+        "DatabaseName" : {"Ref":"SourceDBName"},
+        "EndpointType" : "source",
+        "EngineName" : {"Ref":"SourceEngine"},
+        "Password" : {"Ref":"SourcePassword"},
+        "Port" : {"Ref":"SourcePort"},
+        "ServerName" : {"Ref":"SourceEndpointServer"},
+        "Tags" : [ {
+          "Key": "Name",
+          "Value": {
+            "Fn::Sub": "${AWS::StackName}-ReplicationSetup"
+          }
+        },
+        {
+          "Key": "Product",
+          "Value": "DMS-Automation-ReplicationSetup"
+        },
+        {
+          "Key": "Solution",
+          "Value": "DMS-Automation-ReplicationSetup"
+        } ],
+        "Username" : {"Ref":"SourceUser"}
+      }
+    },
+    "TargetEndpoint":{
+      "Type": "AWS::DMS::Endpoint",
+      "Properties" : {
+        "DatabaseName" : {"Ref":"TargetDBName"},
+        "EndpointType" : "target",
+        "EngineName" : {"Ref":"TargetEngine"},
+        "Password" : {"Ref":"TargetPassword"},
+        "Port" : {"Ref":"TargetPort"},
+        "ServerName" : {"Ref":"TargetEndpointServer"},
+        "Tags" : [ {
+          "Key": "Name",
+          "Value": {
+            "Fn::Sub": "${AWS::StackName}-ReplicationSetup"
+          }
+        },
+        {
+          "Key": "Product",
+          "Value": "DMS-Automation-ReplicationSetup"
+        },
+        {
+          "Key": "Solution",
+          "Value": "DMS-Automation-ReplicationSetup"
+        } ],
+        "Username" : {"Ref":"TargetUser"}
+      }
+    },
+    "ReplicationSubnetGroup": {
+      "Properties": {
+        "ReplicationSubnetGroupDescription": "DMS Automation Subnets",
+        "SubnetIds": {
+          "Ref": "Subnets"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-ReplicationSetup"
+            }
+          },
+          {
+            "Key": "Product",
+            "Value": "DMS-Automation-ReplicationSetup"
+          },
+          {
+            "Key": "Solution",
+            "Value": "DMS-Automation-ReplicationSetup"
+          }
+        ]
+      },
+      "Type": "AWS::DMS::ReplicationSubnetGroup"
+    }
+  }
+}
