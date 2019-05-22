@@ -1,6 +1,6 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "Creates CodePipeline for Database Migration Service task automation",
+    "Description": "Creates CodePipeline for Database Migration Service",
     "Metadata": {
         "AWS::CloudFormation::Interface": {
             "ParameterGroups": [
@@ -93,77 +93,64 @@
         "pCodeBuildSecurityGroup": {
             "Type": "AWS::EC2::SecurityGroup::Id",
             "AllowedPattern": "^[a-zA-Z0-9-\\-_.]{3,63}",
-            "Default": "sg-3bbe8340",
             "Description": "Security group used by CodeBuild. Please ensure that this has access to RDS endpoint"
         },
         "pCodeBuildSubnet": {
             "Type": "AWS::EC2::Subnet::Id",
             "AllowedPattern": "^[a-zA-Z0-9-\\-_.]{3,63}",
-            "Default": "subnet-0ef8b005e941e74ad",
             "Description": "Private subnet id with NAT gateway where codebuild will be launched"
         },
         "pCodeBuildVPC": {
             "Type": "AWS::EC2::VPC::Id",
             "AllowedPattern": "^[a-zA-Z0-9-\\-_.]{3,63}",
-            "Default": "vpc-f7faf790",
             "Description": "VPC Id where codebuild will be launched. Subnet and security group should belong to this VPC."
         },
         "pS3BucketKey": {
             "Type": "String",
             "AllowedPattern": "^[a-zA-Z0-9-\\-_.]{3,63}",
-            "Default": "test.zip",
             "Description": "The location of file which is used as source for CodePipeline"
         },
         "pS3BucketName": {
             "Type": "String",
             "AllowedPattern": "^[a-zA-Z0-9-\\-_.]{3,63}",
-            "Default": "test-bucket-dms-12341234",
             "Description": "The name of the S3 bucket where the code resides. This will be used as source for the CodePipeline"
         },
         "pRDSEndpoint": {
             "Type": "String",
             "AllowedPattern": "^[a-zA-Z0-9-\\-_.]{3,63}",
-            "Default": "targetdb02.cmbi8axdpp1y.us-west-2.rds.amazonaws.com",
             "Description": "RDS endpoint where the schema changes will take place"
         },
         "pRDSName": {
             "Type": "String",
             "AllowedPattern": "^[a-zA-Z0-9-\\-_.]{3,63}",
-            "Default": "postgres",
             "Description": "RDS database name for deployments"
         },
         "pRDSPassword": {
             "Type": "String",
             "AllowedPattern": "^[a-zA-Z0-9-\\-_.]{3,63}",
-            "Default": "Passw0rd",
             "Description": "The database user password for deployment",
             "NoEcho": "true"
         },
         "pTaskName": {
             "Type": "String",
             "AllowedPattern": "^[a-zA-Z0-9-\\-_.]{3,63}",
-            "Default": "dmstask",
             "Description": "Name of DMS task"
         },
         "pDmsSourceArn": {
             "Type": "String",
-            "Default": "arn:aws:dms:us-west-2:585635073851:endpoint:NAW4AYJEWX3RQ7S2AQI24ZXQSE",
             "Description": "Arn of source endpoint which was successfully tested with replication instance"
         },
         "pDmsTargetArn": {
             "Type": "String",
-            "Default": "arn:aws:dms:us-west-2:585635073851:endpoint:CA53XPQ2V5JL3BDZ3HXKFTYCEQ",
             "Description": "Arn of source endpoint which was successfully tested with replication instance"
         },
         "pDmsReplicationArn": {
             "Type": "String",
-            "Default": "arn:aws:dms:us-west-2:585635073851:rep:44UY2L4OCXUC6SMEF7AAHUILNQ",
             "Description": "Arn of replication instance used for migration"
         },
         "pRDSUser": {
             "Type": "String",
             "AllowedPattern": "^[a-zA-Z0-9-\\-_.]{3,63}",
-            "Default": "master",
             "Description": "RDS database user name"
         }
     },
@@ -682,7 +669,6 @@
         },
         "rArtifactStoreS3Location": {
             "Type": "AWS::S3::Bucket",
-            "DeletionPolicy": "Retain",
             "Properties": {
                 "Tags": [
                     {
@@ -766,7 +752,76 @@
             "Type": "AWS::Lambda::Function",
             "Properties": {
                 "Code": {
-                    "ZipFile": "import boto3\nimport json\nimport os\nssm = boto3.client('ssm')\ncodepipeline = boto3.client('codepipeline')\nssm_parameter = os.environ['codepipeline_token']\npipeline_name = os.environ['pipeline_name']\ndef lambda_handler(event, context): \n    print(event)\n    str_subject = event['Records'][0]['Sns']['Subject']\n    if 'APPROVAL NEEDED' in str_subject:\n        print('This is a Codepipeline approval action')\n        str_sns = event['Records'][0]['Sns']['Message']\n        sns_msg = json.loads(str_sns)\n        pipeline = sns_msg['approval']['pipelineName']\n        stage = sns_msg['approval']['stageName']\n        action = sns_msg['approval']['actionName']\n        token = sns_msg['approval']['token']\n        approve_param =\"pipelineName='%s',stageName='%s',actionName='%s',token='%s'\" % ( pipeline , stage , action , token)\n        print(approve_param)\n        response = ssm.put_parameter(Name=ssm_parameter,\n            Value=approve_param,\n            Type='String',\n            Overwrite=True\n            )\n    elif 'DMS' in str_subject:\n        print('This is a message from DMS')\n        str_sns = event['Records'][0]['Sns']['Message']\n        if 'attempt' in str_sns:\n            print(str_sns)\n            print('Event notification nothing will be done')\n        else:\n            sns_msg = json.loads(str_sns)\n            print(sns_msg['Event Message'])\n            dms_status = sns_msg['Event Message']\n            if 'STOPPED_AFTER_FULL_LOAD' in dms_status:\n                print('DMS task replication is stopped after full load, proceeding to put an approval in Codepipeline')\n                result_pipeline('Approved')\n            elif 'started' in dms_status:\n                print('Lambda will do nothing at this step as the task is started')\n            elif 'Create' in dms_status:\n                print('Lambda will do nothing at this step as the task is created')\n            else:\n                print('DMS task did not stop or errored out after full load. Please check the task')\n                result_pipeline('Rejected')\n          \n    else:\n        print('This message is from neither Codepipeline Approval or DMS event. Nothing will be done')\n            \n    \ndef result_pipeline(event):\n    print('Getting Codepipeline parameters from SSM to put a %s' %(event))\n    codepipeline_params = ssm.get_parameter(Name=ssm_parameter)['Parameter']['Value'].split(\"'\")\n    print(codepipeline_params)\n    result_reponse = codepipeline.put_approval_result(\n        pipelineName=codepipeline_params[1],\n        stageName=codepipeline_params[3],\n        actionName=codepipeline_params[5],\n        result={\n            'summary': event,\n            'status': event\n        },\n        token=codepipeline_params[7]\n    )\n    print(result_reponse)\n"
+                    "ZipFile": {
+                      "Fn::Join": [
+                        "\n",
+                        [
+                          "import boto3",
+                          "import json",
+                          "import os",
+                          "ssm = boto3.client('ssm')",
+                          "codepipeline = boto3.client('codepipeline')",
+                          "ssm_parameter = os.environ['codepipeline_token']",
+                          "pipeline_name = os.environ['pipeline_name']",
+                          "def lambda_handler(event, context): ",
+                          "    print(event)",
+                          "    str_subject = event['Records'][0]['Sns']['Subject']",
+                          "    if 'APPROVAL NEEDED' in str_subject:",
+                          "        print('This is a Codepipeline approval action')",
+                          "        str_sns = event['Records'][0]['Sns']['Message']",
+                          "        sns_msg = json.loads(str_sns)",
+                          "        pipeline = sns_msg['approval']['pipelineName']",
+                          "        stage = sns_msg['approval']['stageName']",
+                          "        action = sns_msg['approval']['actionName']",
+                          "        token = sns_msg['approval']['token']",
+                          "        approve_param =\"pipelineName='%s',stageName='%s',actionName='%s',token='%s'\" % ( pipeline , stage , action , token)",
+                          "        print(approve_param)","        response = ssm.put_parameter(Name=ssm_parameter,",
+                          "            Value=approve_param,",
+                          "            Type='String',",
+                          "            Overwrite=True",
+                          "            )",
+                          "    elif 'DMS' in str_subject:",
+                          "        print('This is a message from DMS')",
+                          "        str_sns = event['Records'][0]['Sns']['Message']",
+                          "        if 'attempt' in str_sns:",
+                          "            print(str_sns)",
+                          "            print('Event notification nothing will be done')",
+                          "        else:",
+                          "            sns_msg = json.loads(str_sns)",
+                          "            print(sns_msg['Event Message'])",
+                          "            dms_status = sns_msg['Event Message']",
+                          "            if 'STOPPED_AFTER_FULL_LOAD' in dms_status:",
+                          "                print('DMS task replication is stopped after full load, proceeding to put an approval in Codepipeline')",
+                          "                result_pipeline('Approved')",
+                          "            elif 'started' in dms_status:",
+                          "                print('Lambda will do nothing at this step as the task is started')",
+                          "            elif 'Create' in dms_status:",
+                          "                print('Lambda will do nothing at this step as the task is created')",
+                          "            else:",
+                          "                print('DMS task did not stop or errored out after full load. Please check the task')",
+                          "                result_pipeline('Rejected')",
+                          "          ",
+                          "    else:",
+                          "        print('This message is from neither Codepipeline Approval or DMS event. Nothing will be done')",
+                          "            ","    ","def result_pipeline(event):",
+                          "    print('Getting Codepipeline parameters from SSM to put a %s' %(event))",
+                          "    codepipeline_params = ssm.get_parameter(Name=ssm_parameter)['Parameter']['Value'].split(\"'\")",
+                          "    print(codepipeline_params)",
+                          "    result_reponse = codepipeline.put_approval_result(",
+                          "        pipelineName=codepipeline_params[1],",
+                          "        stageName=codepipeline_params[3],",
+                          "        actionName=codepipeline_params[5],",
+                          "        result={",
+                          "            'summary': event,",
+                          "            'status': event",
+                          "        },",
+                          "        token=codepipeline_params[7]",
+                          "    )",
+                          "    print(result_reponse)",
+                          ""
+                        ]
+                      ]
+                    }
                 },
                 "Environment": {
                     "Variables": {
@@ -872,7 +927,110 @@
                     }
                 ]
             }
-        }
+        },
+        "ArtifactStoreCleanUp":{
+          "Type": "Custom::S3CleanUp",
+          "Properties": {
+            "DestBucket": {"Ref": "rArtifactStoreS3Location"},
+            "ServiceToken": {"Fn::GetAtt": ["S3CleanUpFunction","Arn"]}
+          }
+        },
+        "S3CleanUpRole": {
+          "Type": "AWS::IAM::Role",
+          "Properties": {
+            "AssumeRolePolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Action": "sts:AssumeRole",
+                  "Effect": "Allow",
+                  "Principal": {"Service": "lambda.amazonaws.com"}
+                  }
+                ]
+              },
+              "ManagedPolicyArns": ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"],
+              "Path": "/",
+              "Policies": [
+                {
+                  "PolicyDocument": {
+                    "Statement": [
+                      {
+                        "Action": [
+                          "s3:PutObject",
+                          "s3:DeleteObject",
+                          "s3:GetObject",
+                          "s3:ListBucket",
+                          "s3:ListBucketVersions",
+                          "s3:DeleteObjectVersion",
+                          "s3:GetObjectVersion",
+                          "s3:GetBucketVersioning"
+                        ],
+                        "Effect": "Allow",
+                        "Resource": {"Fn::Sub": "arn:aws:s3:::${rArtifactStoreS3Location}*"}
+                      }
+                    ],
+                    "Version": "2012-10-17"
+                  },
+                  "PolicyName": {"Fn::Sub": "${AWS::StackName}-${AWS::Region}-S3CleanupPolicy"}
+                }
+              ],
+              "RoleName":{"Fn::Sub": "${AWS::StackName}-${AWS::Region}-S3CleanupRole"}
+            }
+
+          },
+        "S3CleanUpFunction": {
+              "Type": "AWS::Lambda::Function",
+              "Properties": {
+                "Description": "Empty the S3 Buckets while deleting the Stack",
+                "Handler": "index.lambda_handler",
+                "Role": {"Fn::GetAtt": ["S3CleanUpRole","Arn"]},
+                "Runtime": "python3.6",
+                "Timeout": 240,
+                  "Code": {
+                    "ZipFile":{
+                      "Fn::Join": [
+                        "\n",
+                        [
+                        "import boto3",
+                        "import cfnresponse",
+                        "import json",
+                        "",
+                        "def lambda_handler(event, context):",
+                        "",
+                        "",
+                        "    try:",
+                        "       ",
+                        "        bucketcfn=event['ResourceProperties']['DestBucket']",
+                        "        responseData = {}",
+                        "",
+                        "        if event['RequestType'] == 'Create': ",
+                        "            print('Create stack operation nothing will be done') ",
+                        "            print(bucketcfn)      ",
+                        "",
+                        "        elif event['RequestType'] == 'Delete':",
+                        "            s3 = boto3.resource('s3')",
+                        "            bucket = s3.Bucket(bucketcfn)",
+                        "            bucket.object_versions.all().delete()",
+                        "            print('Delete stack in progress the bucket is emptied')",
+                        "",
+                        "        elif event['RequestType'] == 'Update':",
+                        "            print('Update stack')",
+                        "",
+                        "        cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')",
+                        "",
+                        "    except Exception as e:",
+                        "        print(e)",
+                        "        cfnresponse.send(event, context, cfnresponse.FAILURE, {}, '')",
+                        ""
+                        ]
+                      ]
+                    }
+                  }
+
+              }
+
+          }
+
     },
     "Outputs": {
         "oApplicationPipeline": {
