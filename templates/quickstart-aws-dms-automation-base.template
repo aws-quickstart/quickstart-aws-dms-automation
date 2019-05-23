@@ -883,7 +883,9 @@
                     "Id": "__default_policy_ID",
                     "Statement": [
                         {
-                            "Sid": "__default_statement_ID",
+                            "Sid": {
+                                "Fn::Sub": "SNS-${AWS::StackName}-${AWS::Region}-policy"
+                            },
                             "Effect": "Allow",
                             "Principal": {
                                 "AWS": "*"
