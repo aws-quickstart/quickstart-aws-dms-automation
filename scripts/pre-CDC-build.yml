@@ -32,5 +32,5 @@ phases:
       - psql -h $TARGET_ENDPOINT -U $DB_USER -d $DB_NAME -c "\i preCDC-script.sql"
       - replication_task_arn=`aws dms describe-replication-tasks --filters Name=replication-task-id,Values=$TASK_NAME --query 'ReplicationTasks[0].ReplicationTaskArn' --output text`
       - aws dms start-replication-task --replication-task-arn $replication_task_arn --start-replication-task-type resume-processing
-      - aws dms wait replication-task-running --filters replication-task-arn $replication_task_arn
+      - aws dms wait replication-task-running --filters Name=replication-task-arn,Values=$replication_task_arn
       - aws sns publish --topic-arn $NOTIFY_SNS --message "DMS Replication Task resumed successfully" --subject "Status Update $TASK_NAME"

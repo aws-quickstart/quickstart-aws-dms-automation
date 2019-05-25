@@ -184,6 +184,9 @@
           "detail": {
             "state": [
               "FAILED"
+            ],
+            "pipeline":[
+              {"Ref":"rAppPipeline"}
             ]
           }
         },
@@ -941,7 +944,7 @@
               "Ref":"pTaskName"
             },
             "notify_topic":{
-              "Ref":"pTaskName"
+              "Ref":"rMigNotify"
             }
           }
         },
