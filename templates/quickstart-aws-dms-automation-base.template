@@ -44,9 +44,20 @@
             "pS3BucketName",
             "pS3BucketKey"
           ]
+        },
+        {
+          "Label": {
+            "default": "Migration Notifications"
+          },
+          "Parameters": [
+            "pMigNotify"
+          ]
         }
       ],
       "ParameterLabels": {
+        "pMigNotify":{
+          "default": "Email address"
+        },
         "pTaskName": {
           "default": "DMS Task Name"
         },
@@ -90,6 +101,10 @@
     }
   },
   "Parameters": {
+    "pMigNotify":{
+      "Type":"String",
+      "Description":"This email will get notifications on Migration Status"
+    },
     "pCodeBuildSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup::Id",
       "AllowedPattern": "^[a-zA-Z0-9-\\-_.]{3,63}",
@@ -155,6 +170,16 @@
     }
   },
   "Resources": {
+    "rMigNotify":{
+      "Type":"AWS::SNS::Topic",
+      "Properties":{
+      "Subscription":  [ {
+            "Endpoint" : {"Ref":"pMigNotify"},
+            "Protocol" : "email"
+        } ]
+      }
+    },
+
     "rAppPipeline": {
       "Type": "AWS::CodePipeline::Pipeline",
       "Properties": {
@@ -484,6 +509,13 @@
               }
             },
             {
+              "Name": "NOTIFY_SNS",
+              "Type": "PLAINTEXT",
+              "Value": {
+                "Ref": "rMigNotify"
+              }
+            },
+            {
               "Name": "TASK_NAME",
               "Type": "PLAINTEXT",
               "Value": {
@@ -630,6 +662,15 @@
                 },
                 {
                   "Action": [
+                    "sns:Publish"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": {
+                    "Ref": "rMigNotify"
+                  }
+                },
+                {
+                  "Action": [
                     "ec2:CreateNetworkInterface",
                     "ec2:DescribeDhcpOptions",
                     "ec2:DescribeNetworkInterfaces",
@@ -733,6 +774,15 @@
                 },
                 {
                   "Action": [
+                    "sns:Publish"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": {
+                    "Ref": "rMigNotify"
+                  }
+                },
+                {
+                  "Action": [
                     "ssm:GetParameter",
                     "ssm:PutParameter"
                   ],
@@ -760,9 +810,12 @@
                 "import json",
                 "import os",
                 "ssm = boto3.client('ssm')",
+                "sns = boto3.client('sns')",
                 "codepipeline = boto3.client('codepipeline')",
                 "ssm_parameter = os.environ['codepipeline_token']",
                 "pipeline_name = os.environ['pipeline_name']",
+                "task_name = os.environ['dms_task']",
+                "topic = os.environ['notify_topic']",
                 "def lambda_handler(event, context): ",
                 "    print(event)",
                 "    str_subject = event['Records'][0]['Sns']['Subject']",
@@ -798,8 +851,17 @@
                 "                print('Lambda will do nothing at this step as the task is started')",
                 "            elif 'Create' in dms_status:",
                 "                print('Lambda will do nothing at this step as the task is created')",
+                "            elif 'FAIL' in dms_status.upper():",
+                "                status = 'DMS task failed. Please check the task'",
+                "                print(status)",
+                "                subj = 'Status Update on DMS Task ' + os.environ['dms_task']",
+                "                sns.publish(TopicArn = topic, Message = status, Subject = subj)",
+                "                result_pipeline('Rejected')",
                 "            else:",
-                "                print('DMS task did not stop or errored out after full load. Please check the task')",
+                "                status = 'DMS task did not stop or errored out after full load. Please check the task'",
+                "                print(status)",
+                "                subj = 'Status Update on DMS Task ' + os.environ['dms_task']",
+                "                sns.publish(TopicArn = topic, Message = status, Subject = subj)",
                 "                result_pipeline('Rejected')",
                 "          ",
                 "    else:",
@@ -833,6 +895,12 @@
             },
             "pipeline_name": {
               "Ref": "rAppPipeline"
+            },
+            "dms_task":{
+              "Ref":"pTaskName"
+            },
+            "notify_topic":{
+              "Ref":"pTaskName"
             }
           }
         },
