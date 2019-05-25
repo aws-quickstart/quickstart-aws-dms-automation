@@ -1,10 +1,10 @@
 version: 0.2
 phases:
-  # install:
-  #   commands:
-  #     - apt-get update -y
-  #     - apt-get install postgresql-client -y
-  #     - pip install --upgrade awscli
+  install:
+    commands:
+      - apt-get update -y
+      - apt-get install postgresql-client -y
+      - pip install --upgrade awscli
   build:
     commands:
       - echo Entered the build phase...
