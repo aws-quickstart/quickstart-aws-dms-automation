@@ -170,6 +170,30 @@
     }
   },
   "Resources": {
+    "rAppPipelineEvents":{
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+      "Description": "EventRule",
+      "EventPattern":{
+          "source": [
+            "aws.codepipeline"
+          ],
+          "detail-type": [
+            "CodePipeline Pipeline Execution State Change"
+          ],
+          "detail": {
+            "state": [
+              "FAILED"
+            ]
+          }
+        },
+      "State": "ENABLED",
+      "Targets": [{
+        "Arn": { "Ref": "rMigNotify" },
+        "Id": "MigrationPipeline"
+      }]
+    }
+    },
     "rMigNotify":{
       "Type":"AWS::SNS::Topic",
       "Properties":{
@@ -180,6 +204,23 @@
       }
     },
 
+
+    "rMigNotifyPolicy": {
+  "Type": "AWS::SNS::TopicPolicy",
+  "Properties": {
+    "PolicyDocument": {
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Principal": { "Service": "events.amazonaws.com" },
+          "Action": "sns:Publish",
+          "Resource": "*"
+        }
+      ]
+    },
+    "Topics": [ {"Ref": "MySNSTopic"} ]
+  }
+},
     "rAppPipeline": {
       "Type": "AWS::CodePipeline::Pipeline",
       "Properties": {
