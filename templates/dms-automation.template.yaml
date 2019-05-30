@@ -1,0 +1,452 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Creates CodePipeline for Database Migration Service
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Database Migration Service Endpoints
+        Parameters:
+          - pDmsSourceArn
+          - pDmsTargetArn
+          - pDmsReplicationArn
+          - pTaskName
+      - Label:
+          default: Target RDS Access and Credentials
+        Parameters:
+          - pRDSEndpoint
+          - pRDSName
+          - pRDSUser
+          - pRDSPassword
+      - Label:
+          default: CodeBuild Configuration and Environment
+        Parameters:
+          - pCodeBuildSecurityGroup
+          - pCodeBuildSubnet
+          - pCodeBuildVPC
+      - Label:
+          default: CodePipeline Source Configuration
+        Parameters:
+          - pS3BucketName
+          - pS3BucketKey
+      - Label:
+          default: Migration Notifications
+        Parameters:
+          - pMigNotify
+      - Label:
+          default: DMS Replication Instance Configuration
+        Parameters:
+          - Subnets
+          - SecurityGroup
+          - InstanceType
+          - EngineVersion
+          - PublicAccess
+          - MultiAz
+      - Label:
+          default: Source Database Configuration
+        Parameters:
+          - SourceDBName
+          - SourceEngine
+          - SourcePassword
+          - SourcePort
+          - SourceEndpointServer
+          - SourceUser
+      - Label:
+          default: Target Database Configuration
+        Parameters:
+          - TargetDBName
+          - TargetEngine
+          - TargetPassword
+          - TargetPort
+          - TargetEndpointServer
+          - TargetUser
+      - Label:
+          default: Lambda Layer Configuration
+        Parameters:
+          - LayerBucket
+          - LayerKey
+      - Label:
+          default: AWS Quick Start Configuration
+        Parameters:
+          - QSS3BucketName
+          - QSS3KeyPrefix
+      - Label:
+          default: Bastion configuration
+        Parameters:
+          - EnableBastionStack
+          - RemoteAccessCIDR
+          - KeyPairName
+      - Label:
+          default: Network configuration
+        Parameters:
+          - VPCID
+          - PublicSubnet1ID
+          - PublicSubnet2ID
+    ParameterLabels:
+      pMigNotify:
+        default: Email address
+      pTaskName:
+        default: DMS Task Name
+      pCodeBuildVPC:
+        default: VPC used by CodeBuild
+      pCodeBuildSubnet:
+        default: SubnetID
+      pCodeBuildSecurityGroup:
+        default: Security Group
+      pS3BucketName:
+        default: S3 Bucket
+      pS3BucketKey:
+        default: S3 Key
+      pRDSEndpoint:
+        default: RDS Endpoint
+      pRDSName:
+        default: Database Name
+      pRDSUser:
+        default: Database Username
+      pRDSPassword:
+        default: Database Password
+      pDmsSourceArn:
+        default: Source Endpoint Arn
+      pDmsTargetArn:
+        default: Target Endpoint Arn
+      pDmsReplicationArn:
+        default: Replication instance Arn
+      LayerBucket:
+        default: Layer S3 Bucket
+      LayerKey:
+        default: Layer S3 Key
+      SourceDBName:
+        default: Source Database Name
+      SourceEngine:
+        default: Source Database Engine
+      SourcePassword:
+        default: Source Database Password
+      SourcePort:
+        default: Source Database Port
+      SourceEndpointServer:
+        default: Source Database Endpoint
+      SourceUser:
+        default: Source Database Username
+      TargetDBName:
+        default: Target Database Name
+      TargetEngine:
+        default: Target Database Engine
+      TargetPassword:
+        default: Target Database Password
+      TargetPort:
+        default: Target Database Port
+      TargetEndpointServer:
+        default: Target Database Endpoint
+      TargetUser:
+        default: Target Database Username
+      EngineVersion:
+        default: Replication Engine Version
+      InstanceType:
+        default: Instance Type
+      MultiAz:
+        default: Enable MultiAZ
+      PublicAccess:
+        default: Allow Public Access
+      SecurityGroup:
+        default: Security Group
+      KeyPairName:
+        default: Key pair name
+      EnableBastionStack:
+        default: Create Bastion entry point 
+      RemoteAccessCIDR:
+        default: Allowed External Access CIDR (bastion access)
+      PublicSubnet1ID:
+        default: Public Subnet ID 1
+      PublicSubnet2ID:
+        default: Public Subnet ID 2
+      VPCID:
+        default: VPC ID 
+Parameters:
+  pMigNotify:
+    Type: String
+    Description: This email will get notifications on Migration Status
+  pCodeBuildSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup::Id'
+    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
+    Description: Security group used by CodeBuild. Please ensure that this has access to
+      RDS endpoint
+  pCodeBuildSubnet:
+    Type: 'AWS::EC2::Subnet::Id'
+    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
+    Description: Private subnet id with NAT gateway where codebuild will be launched
+  pCodeBuildVPC:
+    Type: 'AWS::EC2::VPC::Id'
+    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
+    Description: VPC Id where codebuild will be launched. Subnet and security group should
+      belong to this VPC.
+  pS3BucketKey:
+    Type: String
+    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
+    Description: The location of file which is used as source for CodePipeline
+  pS3BucketName:
+    Type: String
+    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
+    Description: The name of the S3 bucket where the code resides. This will be used as
+      source for the CodePipeline
+  pRDSEndpoint:
+    Type: String
+    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
+    Description: RDS endpoint where the schema changes will take place
+  pRDSName:
+    Type: String
+    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
+    Description: RDS database name for deployments
+  pRDSPassword:
+    Type: String
+    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
+    Description: The database user password for deployment
+    NoEcho: 'true'
+  pTaskName:
+    Type: String
+    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
+    Description: Name of DMS task
+  pDmsSourceArn:
+    Type: String
+    Description: Arn of source endpoint which was successfully tested with replication
+      instance
+  pDmsTargetArn:
+    Type: String
+    Description: Arn of source endpoint which was successfully tested with replication
+      instance
+  pDmsReplicationArn:
+    Type: String
+    Description: Arn of replication instance used for migration
+  pRDSUser:
+    Type: String
+    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
+    Description: RDS database user name
+  EngineVersion:
+    AllowedValues:
+      - 3.1.3
+      - 2.4.5
+      - 2.4.4
+      - 2.4.3
+    Description: DMS replication engine version
+    Type: String
+  InstanceType:
+    AllowedValues:
+      - dms.t2.micro
+      - dms.t2.small
+      - dms.t2.medium
+      - dms.t2.large
+      - dms.c4.large
+      - dms.c4.xlarge
+      - dms.c4.2xlarge
+      - dms.c4.4xlarge
+    Description: DMS replication instance type
+    Type: String
+  MultiAz:
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'false'
+    Description: Enable MultiAZ
+    Type: String
+  PublicAccess:
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'false'
+    Description: Publicly Accessible
+    Type: String
+  SecurityGroup:
+    Description: 'Security group ID for DMS replication instance (e.g., sg-1234abcd)'
+    Type: 'AWS::EC2::SecurityGroup::Id'
+  Subnets:
+    Description: Choose two subnets in different availability zones (e.g., subnet-1234abcd,
+      subnet-abcd1234)
+    Type: 'List<AWS::EC2::Subnet::Id>'
+  SourceDBName:
+    Type: String
+    Description: Name of the database in source server
+  SourceEngine:
+    Type: String
+    Description: Database engine running on the source
+    AllowedValues:
+      - mysql
+      - oracle
+      - postgres
+      - mariadb
+      - aurora
+      - aurora-postgresql
+      - redshift
+      - db2
+      - azuredb
+      - sybase
+      - sqlserver
+  SourcePassword:
+    Type: String
+    Description: Source database password
+    NoEcho: 'true'
+  SourcePort:
+    Type: String
+    Description: Port on which the source database is running
+  SourceEndpointServer:
+    Type: String
+    Description: Source database hostname, endpoint URL or IP address
+  SourceUser:
+    Type: String
+    Description: Source database user name
+  TargetDBName:
+    Type: String
+    Description: Name of the database in target server
+  TargetEngine:
+    Type: String
+    Description: Database engine running on the target
+    AllowedValues:
+      - mysql
+      - oracle
+      - postgres
+      - mariadb
+      - aurora
+      - aurora-postgresql
+      - redshift
+      - db2
+      - azuredb
+      - sybase
+      - sqlserver
+  TargetPassword:
+    Type: String
+    Description: Target database password
+    NoEcho: 'true'
+  TargetPort:
+    Type: String
+    Description: Port on which the target database is running
+  TargetEndpointServer:
+    Type: String
+    Description: Target database hostname, endpoint URL or IP address
+  TargetUser:
+    Type: String
+    Description: Target database user name
+  LayerBucket:
+    Type: String
+    Description: S3 bucket of the packaged zip file eampole (test-bucket-1234)
+  LayerKey:
+    Type: String
+    Description: S3 location of the packaged zip file example (folder/sub-folder/test.zip)
+  QSS3KeyPrefix:
+    AllowedPattern: '^[0-9a-zA-Z-/]*$'
+    ConstraintDescription: Quick Start key prefix can include numbers, lowercase letters, uppercase
+      letters, hyphens (-), and forward slash (/).
+    Default: quickstart-aws-dms-automation/
+    Description: S3 key prefix for the Quick Start assets. Quick Start key prefix can
+      include numbers, lowercase letters, uppercase letters, hyphens (-), and
+      forward slash (/).
+    Type: String
+  PublicSubnet1ID:
+    Description: ID of the public subnet 1 that you want to provision the first bastion into (e.g., subnet-a0246dcd)
+    Type: AWS::EC2::Subnet::Id
+  PublicSubnet2ID:
+    Description: ID of the public subnet 2 that you want to provision the first bastion into (e.g., subnet-a0246dcd)
+    Type: AWS::EC2::Subnet::Id
+  KeyPairName:
+    Description: The name of an existing public/private key pair, which allows you to securely connect to your instance after it launches.
+    Type: AWS::EC2::KeyPair::KeyName
+  RemoteAccessCIDR:
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
+    Description: The CIDR IP range that is permitted to access the instances We recommend that you set this value to a trusted IP range.
+    Type: String
+  VPCID:
+    Description: ID of the VPC (e.g., vpc-0343606e)
+    Type: AWS::EC2::VPC::Id
+  QSS3BucketName:
+    AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
+    ConstraintDescription: >-
+      Quick Start bucket name can include numbers, lowercase letters, uppercase
+      letters, and hyphens (-). It cannot start or end with a hyphen (-).
+    Default: aws-quickstart
+    Description: >-
+      S3 bucket name for the Quick Start assets. Quick Start bucket name can
+      include numbers, lowercase letters, uppercase letters, and hyphens (-). It
+      cannot start or end with a hyphen (-).
+    Type: String
+Conditions:
+  GovCloudCondition: !Equals
+    - !Ref AWS::Region
+    - us-gov-west-1
+Resources:
+  DMSCodePiplineStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL:
+        Fn::Sub:
+        - https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-code-pipeline.template.yaml
+        - QSS3Region:
+            Fn::If:
+            - GovCloudCondition
+            - s3-us-gov-west-1
+            - s3
+      Parameters:
+        pMigNotify: !Ref pMigNotify
+        pTaskName: !Ref pTaskName
+        pCodeBuildVPC: !Ref pCodeBuildVPC
+        pCodeBuildSubnet: !Ref pCodeBuildSubnet
+        pCodeBuildSecurityGroup: !Ref pCodeBuildSecurityGroup
+        pS3BucketName: !Ref pS3BucketName
+        pS3BucketKey: !Ref pS3BucketKey
+        pRDSEndpoint: !Ref pRDSEndpoint
+        pRDSName:  !Ref pRDSName
+        pRDSUser: !Ref pRDSUser
+        pRDSPassword: !Ref pRDSPassword
+        pDmsSourceArn: !Ref pDmsSourceArn
+        pDmsTargetArn: !Ref pDmsTargetArn
+        pDmsReplicationArn: !Ref pDmsReplicationArn
+  DMSReplicationStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL:
+        Fn::Sub:
+        - https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-replication-setup.template.yaml
+        - QSS3Region:
+            Fn::If:
+            - GovCloudCondition
+            - s3-us-gov-west-1
+            - s3
+      Parameters:
+        LayerBucket: !Ref LayerBucket
+        LayerKey:  !Ref LayerKey
+        SourceDBName: !Ref SourceDBName
+        SourceEngine: !Ref SourceEngine
+        SourcePassword: !Ref SourcePassword
+        SourcePort: !Ref SourcePort
+        SourceEndpointServer: !Ref SourceEndpointServer
+        SourceUser: !Ref SourceUser
+        TargetDBName: !Ref TargetDBName
+        TargetEngine: !Ref TargetEngine
+        TargetPassword: !Ref TargetPassword
+        TargetPort: !Ref TargetPort
+        TargetEndpointServer: !Ref TargetEndpointServer
+        TargetUser: !Ref TargetUser
+        EngineVersion: !Ref EngineVersion
+        InstanceType: !Ref InstanceType
+        MultiAz:  !Ref MultiAz
+        PublicAccess: !Ref PublicAccess
+        SecurityGroup: !Ref SecurityGroup
+        Subnets: !Ref Subnets
+  BastionStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+         Fn::Sub:
+         - https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-linux-bastion/templates/linux-bastion.t         emplate 
+         - QSS3Region:
+             Fn::If:
+             - GovCloudCondition
+             - s3-us-gov-west-1
+             - s3
+      Parameters:
+        BastionAMIOS: 'Amazon-Linux-HVM'
+        BastionInstanceType: 't2.micro'
+        KeyPairName: !Ref KeyPairName
+        PublicSubnet1ID: !Ref PublicSubnet1ID
+        PublicSubnet2ID: !Ref PublicSubnet2ID
+        QSS3BucketName: !Ref QSS3BucketName
+        QSS3KeyPrefix: !Sub ${QSS3KeyPrefix}submodules/quickstart-linux-bastion/
+        RemoteAccessCIDR: !Ref RemoteAccessCIDR
+        VPCID: !Ref VPCID
+
