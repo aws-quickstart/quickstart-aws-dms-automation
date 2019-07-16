@@ -10,6 +10,7 @@ Metadata:
           - pDmsTargetArn
           - pDmsReplicationArn
           - pTaskName
+          - pFullLoadOnly
       - Label:
           default: Target RDS Access and Credentials
         Parameters:
@@ -33,6 +34,8 @@ Metadata:
         Parameters:
           - pMigNotify
     ParameterLabels:
+      pFullLoadOnly:
+        default: Full Load Only?
       pMigNotify:
         default: Email address
       pTaskName:
@@ -61,7 +64,18 @@ Metadata:
         default: Target Endpoint Arn
       pDmsReplicationArn:
         default: Replication instance Arn
+Conditions:
+  cCdc: !Equals
+    - !Ref pFullLoadOnly
+    - 'no'
 Parameters:
+  pFullLoadOnly:
+    Type: String
+    Description: This is for task to do only full loads and not CDC
+    AllowedValues:
+      - 'yes'
+      - 'no'
+    Default: 'no'
   pMigNotify:
     Type: String
     Description: This email will get notifications on Migration Status
@@ -163,7 +177,7 @@ Resources:
       ArtifactStore:
         Location: !Ref rArtifactStoreS3Location
         Type: S3
-      RoleArn: !GetAtt 
+      RoleArn: !GetAtt
         - rAppPipelineRole
         - Arn
       Stages:
@@ -208,19 +222,22 @@ Resources:
               Name: ApprovalForDMS
               RunOrder: 1
           Name: Approve
-        - Actions:
-            - ActionTypeId:
-                Category: Build
-                Owner: AWS
-                Provider: CodeBuild
-                Version: '1'
-              Configuration:
-                ProjectName: !Ref rApplicationCodeBuildProd
-              InputArtifacts:
-                - Name: AppSource
-              Name: SetupTarget
-              RunOrder: 1
-          Name: PreCDC
+        - !If
+          - cCdc
+          - Actions:
+              - ActionTypeId:
+                  Category: Build
+                  Owner: AWS
+                  Provider: CodeBuild
+                  Version: '1'
+                Configuration:
+                  ProjectName: !Ref rApplicationCodeBuildProd
+                InputArtifacts:
+                  - Name: AppSource
+                Name: SetupTarget
+                RunOrder: 1
+            Name: PreCDC
+          - !Ref 'AWS::NoValue'
   rAppPipelineRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -253,7 +270,7 @@ Resources:
     Properties:
       Artifacts:
         Type: CODEPIPELINE
-      Description: A description about my project
+      Description: Target and DMS task setup
       Environment:
         ComputeType: BUILD_GENERAL1_SMALL
         EnvironmentVariables:
@@ -287,7 +304,7 @@ Resources:
         Image: 'aws/codebuild/ubuntu-base:14.04'
         Type: LINUX_CONTAINER
       Name: !Sub 'Codebuild-${AWS::StackName}-setupTarget'
-      ServiceRole: !GetAtt 
+      ServiceRole: !GetAtt
         - rCodeBuildServiceRole
         - Arn
       Source:
@@ -307,6 +324,7 @@ Resources:
         VpcId: !Ref pCodeBuildVPC
   rApplicationCodeBuildProd:
     Type: 'AWS::CodeBuild::Project'
+    Condition: cCdc
     Properties:
       Artifacts:
         Type: CODEPIPELINE
@@ -335,7 +353,7 @@ Resources:
         Image: 'aws/codebuild/ubuntu-base:14.04'
         Type: LINUX_CONTAINER
       Name: !Sub 'Codebuild-${AWS::StackName}-preCDC'
-      ServiceRole: !GetAtt 
+      ServiceRole: !GetAtt
         - rCodeBuildServiceRole
         - Arn
       Source:
@@ -482,7 +500,7 @@ Resources:
     Type: 'AWS::Lambda::Function'
     Properties:
       Code:
-        ZipFile: !Join 
+        ZipFile: !Join
           - |+
 
           - - import boto3
@@ -571,14 +589,14 @@ Resources:
           notify_topic: !Ref rMigNotify
       Handler: index.lambda_handler
       Runtime: python3.6
-      Role: !GetAtt 
+      Role: !GetAtt
         - rApplicationLambdaRole
         - Arn
       Timeout: 300
   CheckDmsEndpointStatus:
     Type: 'Custom::CheckDmsEndpointStatus'
     Properties:
-      ServiceToken: !GetAtt 
+      ServiceToken: !GetAtt
         - CheckDmsEndpointStatusFunction
         - Arn
       ReplicationInstanceArn: !Ref pDmsReplicationArn
@@ -611,12 +629,12 @@ Resources:
     Properties:
       Handler: index.lambda_handler
       Runtime: python3.6
-      Role: !GetAtt 
+      Role: !GetAtt
         - CheckDmsEndpointStatusRole
         - Arn
       Timeout: 300
       Code:
-        ZipFile: !Join 
+        ZipFile: !Join
           - |+
 
           - - 'import boto3 '
@@ -673,7 +691,7 @@ Resources:
   rLambdaPermissionGrantSNS:
     Type: 'AWS::Lambda::Permission'
     Properties:
-      FunctionName: !GetAtt 
+      FunctionName: !GetAtt
         - rApplicationLambdaFunction
         - Arn
       Action: 'lambda:InvokeFunction'
@@ -683,7 +701,7 @@ Resources:
     Type: 'AWS::SNS::Subscription'
     Properties:
       Protocol: lambda
-      Endpoint: !GetAtt 
+      Endpoint: !GetAtt
         - rApplicationLambdaFunction
         - Arn
       TopicArn: !Ref rSnsApproval
@@ -724,7 +742,7 @@ Resources:
     Type: 'Custom::S3CleanUp'
     Properties:
       DestBucket: !Ref rArtifactStoreS3Location
-      ServiceToken: !GetAtt 
+      ServiceToken: !GetAtt
         - S3CleanUpFunction
         - Arn
   S3CleanUpRole:
@@ -762,13 +780,13 @@ Resources:
     Properties:
       Description: Empty the S3 Buckets while deleting the Stack
       Handler: index.lambda_handler
-      Role: !GetAtt 
+      Role: !GetAtt
         - S3CleanUpRole
         - Arn
       Runtime: python3.6
       Timeout: 240
       Code:
-        ZipFile: !Join 
+        ZipFile: !Join
           - |+
 
           - - import boto3
@@ -835,7 +853,7 @@ Outputs:
     Value: !Ref rCodeBuildServiceRole
   oApplicationCodeBuildProd:
     Description: PreCDC CodeBuild Project
-    Value: !Ref rApplicationCodeBuildProd
+    Value: !If [cCdc, !Ref rApplicationCodeBuildProd, 'none' ]
   oApplicationCodeBuild:
     Description: SetupTarget CodeBuild Project
     Value: !Ref rApplicationCodeBuild
