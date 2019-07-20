@@ -19,6 +19,15 @@ Metadata:
           - pRDSUser
           - pRDSPassword
       - Label:
+          default: Sample Source RDS Access and Credentials
+        Parameters:
+          - pCreateSample
+          - pSourceRDSEndpoint
+          - pSourceRDSName
+          - pSourceRDSUser
+          - pSourceRDSPassword
+
+      - Label:
           default: CodeBuild Configuration and Environment
         Parameters:
           - pCodeBuildSecurityGroup
@@ -34,6 +43,8 @@ Metadata:
         Parameters:
           - pMigNotify
     ParameterLabels:
+      pCreateSample:
+        default: Create Sample Source?
       pFullLoadOnly:
         default: Full Load Only?
       pMigNotify:
@@ -54,10 +65,18 @@ Metadata:
         default: RDS Endpoint
       pRDSName:
         default: Database Name
-      pRDSUser:
-        default: Database Username
-      pRDSPassword:
-        default: Database Password
+      pSourceRDSUser:
+        default: Source Database Username
+      pSourceRDSPassword:
+        default: Source Database Password
+      pSourceRDSEndpoint:
+        default: Source RDS Endpoint
+      pSourceRDSName:
+        default: Source Database Name
+      pSourceRDSUser:
+        default: Source Database Username
+      pSourceRDSPassword:
+        default: Source Database Password
       pDmsSourceArn:
         default: Source Endpoint Arn
       pDmsTargetArn:
@@ -68,7 +87,17 @@ Conditions:
   cCdc: !Equals
     - !Ref pFullLoadOnly
     - 'no'
+  cCreateSource: !Equals
+    - !Ref pCreateSample
+    - 'yes'
 Parameters:
+  pCreateSample:
+    Type: String
+    Description: Please choose this option if you want to populate source database
+    AllowedValues:
+      - 'yes'
+      - 'no'
+    Default: 'no'
   pFullLoadOnly:
     Type: String
     Description: This is for task to do only full loads and not CDC
@@ -115,6 +144,23 @@ Parameters:
     AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
     Description: The database user password for deployment
     NoEcho: 'true'
+  pRDSUser:
+    Type: String
+    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
+    Description: RDS database user name
+  pSourceRDSEndpoint:
+    Type: String
+    Description: RDS endpoint where the schema changes will take place
+  pSourceRDSName:
+    Type: String
+    Description: RDS database name for deployments
+  pSourceRDSPassword:
+    Type: String
+    Description: The database user password for deployment
+    NoEcho: 'true'
+  pSourceRDSUser:
+    Type: String
+    Description: RDS database user name
   pTaskName:
     Type: String
     AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
@@ -130,11 +176,9 @@ Parameters:
   pDmsReplicationArn:
     Type: String
     Description: Arn of replication instance used for migration
-  pRDSUser:
-    Type: String
-    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
-    Description: RDS database user name
+
 Resources:
+  # create project for populating source
   rAppPipelineEvents:
     Type: 'AWS::Events::Rule'
     Properties:
@@ -196,6 +240,22 @@ Resources:
                 - Name: AppSource
               RunOrder: 1
           Name: Source
+        - !If
+          - cCreateSource
+          - Actions:
+              - ActionTypeId:
+                  Category: Build
+                  Owner: AWS
+                  Provider: CodeBuild
+                  Version: '1'
+                Configuration:
+                  ProjectName: !Ref rSampleCodeBuild
+                InputArtifacts:
+                  - Name: AppSource
+                Name: SetupSource
+                RunOrder: 1
+            Name: Sample
+          - !Ref 'AWS::NoValue'
         - Actions:
             - ActionTypeId:
                 Category: Build
@@ -371,6 +431,80 @@ Resources:
         Subnets:
           - !Ref pCodeBuildSubnet
         VpcId: !Ref pCodeBuildVPC
+  rSampleCodeBuild:
+    Type: 'AWS::CodeBuild::Project'
+    Condition: cCreateSource
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Description: DMS project to populate source database
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        EnvironmentVariables:
+          - Name: DB_PASSWORD
+            Type: PARAMETER_STORE
+            Value: !Ref rSourceRdsPassword
+          - Name: DB_NAME
+            Type: PLAINTEXT
+            Value: !Ref pSourceRDSName
+          - Name: DB_HOST
+            Type: PLAINTEXT
+            Value: !Ref pSourceRDSEndpoint
+          - Name: DB_USER
+            Type: PLAINTEXT
+            Value: !Ref pSourceRDSUser
+          - Name: NOTIFY_SNS
+            Type: PLAINTEXT
+            Value: !Ref rMigNotify
+
+        Image: 'aws/codebuild/standard:1.0'
+        Type: LINUX_CONTAINER
+      Name: !Sub 'Codebuild-${AWS::StackName}-Source'
+      ServiceRole: !GetAtt
+        - rCodeBuildServiceRole
+        - Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: |
+          version: 0.2
+          phases:
+            install:
+              commands:
+                - wget http://yum.oracle.com/repo/OracleLinux/OL7/oracle/instantclient/x86_64/getPackage/oracle-instantclient18.3-basic-18.3.0.0.0-3.x86_64.rpm
+                - apt-get update -y
+                - apt-get install alien dpkg-dev debhelper build-essential libaio1 libaio-dev git -y
+                - ls
+                - alien -k --scripts oracle-instantclient18.3-basic-18.3.0.0.0-3.x86_64.rpm
+                - dpkg -i oracle-instantclient18.3-basic_18.3.0.0.0-3_amd64.deb
+                - ls
+                - wget http://yum.oracle.com/repo/OracleLinux/OL7/oracle/instantclient/x86_64/getPackage/oracle-instantclient18.3-devel-18.3.0.0.0-3.x86_64.rpm
+                - alien -k --scripts oracle-instantclient18.3-devel-18.3.0.0.0-3.x86_64.rpm
+                - wget http://yum.oracle.com/repo/OracleLinux/OL7/oracle/instantclient/x86_64/getPackage/oracle-instantclient18.3-sqlplus-18.3.0.0.0-3.x86_64.rpm
+                - alien -k --scripts oracle-instantclient18.3-sqlplus-18.3.0.0.0-3.x86_64.rpm
+                - dpkg -i oracle-instantclient18.3-devel_18.3.0.0.0-3_amd64.deb
+                - dpkg -i oracle-instantclient18.3-sqlplus_18.3.0.0.0-3_amd64.deb
+                - echo /usr/lib/oracle/18.3/client64/lib > /etc/ld.so.conf.d/oracle-instantclient18.3.conf && ldconfig
+                - ls /etc/ld.so.conf.d/
+                - PATH=$PATH:/usr/lib/oracle/18.3/client64/bin
+                - which sqlplus
+            build:
+              commands:
+                - git clone https://github.com/aws-samples/aws-database-migration-samples.git
+                - cd aws-database-migration-samples/oracle/sampledb/v1
+                - echo "exit;" >> install-rds.sql
+                - sqlplus $DB_USER/$DB_PASSWORD@$DB_HOST/$DB_NAME @install-rds.sql
+                - wget https://raw.githubusercontent.com/nagmesh/aws-database-migration-samples/master/oracle/sampledb/v1/schema/fix.sql
+                - sqlplus $DB_USER/$DB_PASSWORD@$DB_HOST/$DB_NAME @fix.sql
+      Tags:
+        - Key: Created by
+          Value: !Sub ${AWS::StackName}
+      TimeoutInMinutes: 100
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref pCodeBuildSecurityGroup
+        Subnets:
+          - !Ref pCodeBuildSubnet
+        VpcId: !Ref pCodeBuildVPC
   rApplicationpRdsPassword:
     Type: 'AWS::SSM::Parameter'
     Properties:
@@ -378,6 +512,13 @@ Resources:
       Name: !Sub 'DMS-${AWS::StackName}'
       Type: String
       Value: !Ref pRDSPassword
+  rSourceRdsPassword:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Description: SSM Parameter for Source RDS Password.
+      Name: !Sub 'DMS-${AWS::StackName}-source'
+      Type: String
+      Value: !Ref pSourceRDSPassword
   rCodeBuildServiceRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -418,7 +559,9 @@ Resources:
                 Resource: '*'
               - Action: 'ssm:GetParameters'
                 Effect: Allow
-                Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${rApplicationpRdsPassword}
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${rApplicationpRdsPassword}
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${rSourceRdsPassword}
               - Action:
                   - 'sns:GetTopicAttributes'
                   - 'sns:Subscribe'

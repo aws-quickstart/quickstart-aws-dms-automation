@@ -1,0 +1,189 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Creates Sample Source Oracle RDS instance for sample migration.
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: Network configuration
+      Parameters:
+      - VPCID
+      - Subnet1ID
+      - Subnet2ID
+      - CustomDBSecurityGroup
+    - Label:
+        default: Database configuration
+      Parameters:
+      - DBName
+      - DBBackupRetentionPeriod
+      - DBInstanceClass
+      - DBMasterUsername
+      - DBMasterUserPassword
+      - DBPort
+      - DBAccessCIDR
+    ParameterLabels:
+      DBName:
+        default: Database name
+      DBBackupRetentionPeriod:
+        default: Database backup retention period
+      DBInstanceClass:
+        default: Database instance class
+      DBMasterUsername:
+        default: Database master username
+      DBMasterUserPassword:
+        default: Database master password
+      DBPort:
+        default: Database port
+      Subnet1ID:
+        default: Private subnet 1 ID
+      DBAccessCIDR:
+        default: Database connection CIDR
+      Subnet2ID:
+        default: Private subne 2 ID
+      VPCID:
+        default: VPC ID
+      CustomDBSecurityGroup:
+        default: Custom securiy group ID
+Parameters:
+  DBBackupRetentionPeriod:
+    Default: "35"
+    Description: "The number of days for which automatic database snapshots are retained."
+    Type: String
+  DBInstanceClass:
+    AllowedValues:
+      - db.t3.medium
+      - db.t3.large
+      - db.t3.xlarge
+      - db.t3.2xlarge
+    ConstraintDescription: "Must select a valid database instance type."
+    Default: db.t3.large
+    Description: "The name of the compute and memory capacity class of the database instance."
+    Type: String
+  DBMasterUserPassword:
+    AllowedPattern: "(?=^.{6,255}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*"
+    ConstraintDescription: "Min 8 chars. Must include 1 uppercase, 1 lowercase, 1 number, 1 (non / @ \" ') symbol"
+    Description: "The database admin account password."
+    MaxLength: "64"
+    MinLength: "8"
+    Default: Passw0rd!
+    NoEcho: "True"
+    Type: String
+  DBMasterUsername:
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+    ConstraintDescription: "Must begin with a letter and contain only alphanumeric characters."
+    Default: master
+    Description: "The database admin account username."
+    MaxLength: "16"
+    MinLength: "1"
+    Type: String
+  DBPort:
+    Default: 1521
+    Description: "The port the instance will listen for connections on."
+    Type: Number
+    ConstraintDescription: 'Must be in the range [1115-65535].'
+    MinValue: 1150
+    MaxValue: 65535
+  DBAccessCIDR:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/([0-9]|[1-2][0-9]|3[0-2]))$"
+    ConstraintDescription: "CIDR block parameter must be in the form x.x.x.x/x"
+    Description: "Allowed CIDR block for external access (use VPC CIDR)."
+    Type: String
+    Default: 10.0.0.0/16
+  DBName:
+    AllowedPattern: "[a-zA-Z0-9]*"
+    Description: "Name of the Amazon Aurora database."
+    MaxLength: "64"
+    MinLength: "0"
+    Default: 'ORCL'
+    Type: String
+  CustomDBSecurityGroup:
+    Description: "ID of the security group (e.g., sg-0234se). One will be created for you if left empty."
+    Type: String
+    Default: ''
+  Subnet1ID:
+    Description: The ID of the private subnet in Availability Zone 1.
+    Type: 'AWS::EC2::Subnet::Id'
+  Subnet2ID:
+    Description: The ID of the private subnet in Availability Zone 2.
+    Type: 'AWS::EC2::Subnet::Id'
+  VPCID:
+    Description: "ID of the VPC you are deploying Aurora into (e.g., vpc-0343606e)."
+    Type: 'AWS::EC2::VPC::Id'
+    Default: ''
+Conditions:
+  CreateSecurityGroup:
+    !Equals
+    - !Ref CustomDBSecurityGroup
+    - ''
+Resources:
+  SourceDB:
+    Properties:
+      AllocatedStorage: '50'
+      BackupRetentionPeriod: !Ref DBBackupRetentionPeriod
+      DBInstanceClass: !Ref DBInstanceClass
+      DBSubnetGroupName: !Ref SourceDBSubnetGroup
+      DBName: !Ref DBName
+      MasterUsername: !Ref DBMasterUsername
+      MasterUserPassword: !Ref DBMasterUserPassword
+      Port: !Ref DBPort
+
+      Engine: oracle-ee
+      PubliclyAccessible: false
+      CopyTagsToSnapshot: true
+      VPCSecurityGroups:
+        !If
+          - CreateSecurityGroup
+          - [!Ref RDSSecurityGroup]
+          - [!Ref CustomDBSecurityGroup]
+      Tags:
+        -
+          Key: Name
+          Value: !Sub Oracle-${AWS::StackName}
+        -
+          Key: Created By
+          Value: !Ref AWS::StackName
+
+    Type: "AWS::RDS::DBInstance"
+  SourceDBSubnetGroup:
+    Properties:
+      DBSubnetGroupDescription: "Subnets available for the sample Oracle database instance"
+      SubnetIds:
+       - !Ref Subnet1ID
+       - !Ref Subnet2ID
+    Type: "AWS::RDS::DBSubnetGroup"
+  RDSSecurityGroup:
+    Condition: CreateSecurityGroup
+    Properties:
+      GroupDescription: "Allow access to database port"
+      SecurityGroupEgress:
+        -
+          CidrIp: 0.0.0.0/0
+          FromPort: -1
+          IpProtocol: '-1'
+          ToPort: -1
+      SecurityGroupIngress:
+        -
+          CidrIp: !Ref DBAccessCIDR
+          FromPort: !Ref DBPort
+          IpProtocol: tcp
+          ToPort: !Ref DBPort
+      VpcId: !Ref VPCID
+      Tags:
+      - Key: Name
+        Value: !Sub RDSSecurityGroup-${AWS::StackName}
+    Type: "AWS::EC2::SecurityGroup"
+  RDSSecurityGroupIngress:
+    Condition: CreateSecurityGroup
+    Properties:
+      GroupId: !GetAtt 'RDSSecurityGroup.GroupId'
+      IpProtocol: '-1'
+      SourceSecurityGroupId: !Ref RDSSecurityGroup
+      Description: 'Self Reference'
+    Type: 'AWS::EC2::SecurityGroupIngress'
+
+Outputs:
+  SampleSourceEndpoint:
+    Description: Sample Source Oracle RDS Endpoint
+    Value: !GetAtt SourceDB.Endpoint.Address
+  SampleSourcePort:
+    Description: Sample Source Oracle RDS Port
+    Value: !GetAtt SourceDB.Endpoint.Port
