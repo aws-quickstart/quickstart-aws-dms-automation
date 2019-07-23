@@ -11,7 +11,8 @@ Metadata:
         Parameters:
           - CreateNewReplicationInstance
           - ReplInstanceArn
-          - Subnets
+          - PrivateSubnet1
+          - PrivateSubnet2
           - SecurityGroup
           - InstanceType
           - EngineVersion
@@ -83,8 +84,10 @@ Metadata:
         default: Allow Public Access
       SecurityGroup:
         default: Security Group
-      Subnets:
-        default: Subnet IDs
+      PrivateSubnet1:
+        default: Private Subnet 1
+      PrivateSubnet2:
+        default: Private Subnet 2
 Parameters:
   CreateNewReplicationInstance:
     Type: String
@@ -134,10 +137,13 @@ Parameters:
   SecurityGroup:
     Description: 'Security group ID for DMS replication instance (e.g., sg-1234abcd)'
     Type: 'AWS::EC2::SecurityGroup::Id'
-  Subnets:
-    Description: Choose two subnets in different availability zones (e.g., subnet-1234abcd,
-      subnet-abcd1234)
-    Type: 'List<AWS::EC2::Subnet::Id>'
+  Subnets1:
+    Description: Choose a private subnet for DMS replication instance
+    Type: 'AWS::EC2::Subnet::Id'
+  Subnets2:
+    Description: Choose a private subnet for DMS replication instance
+    Type: 'AWS::EC2::Subnet::Id'
+
   SourceDBName:
     Type: String
     Description: Name of the database in source server
@@ -268,7 +274,9 @@ Resources:
     Condition: CreateReplicationInstance
     Properties:
       ReplicationSubnetGroupDescription: DMS Automation Subnets
-      SubnetIds: !Ref Subnets
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
       Tags:
         - Key: Name
           Value: !Sub '${AWS::StackName}-ReplicationSetup'
