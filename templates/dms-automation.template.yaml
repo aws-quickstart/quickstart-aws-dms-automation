@@ -151,7 +151,7 @@ Metadata:
       KeyPairName:
         default: Key pair name
       EnableBastionStack:
-        default: Create Bastion entry point 
+        default: Create Bastion entry point
       RemoteAccessCIDR:
         default: Allowed External Access CIDR (bastion access)
       PublicSubnet1ID:
@@ -159,7 +159,7 @@ Metadata:
       PublicSubnet2ID:
         default: Public Subnet ID 2
       VPCID:
-        default: VPC ID 
+        default: VPC ID
 Parameters:
   pMigNotify:
     Type: String
@@ -433,7 +433,7 @@ Resources:
     Properties:
       TemplateURL:
          Fn::Sub:
-         - https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-linux-bastion/templates/linux-bastion.t         emplate 
+         - https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-linux-bastion/templates/linux-bastion.template 
          - QSS3Region:
              Fn::If:
              - GovCloudCondition
@@ -449,4 +449,3 @@ Resources:
         QSS3KeyPrefix: !Sub ${QSS3KeyPrefix}submodules/quickstart-linux-bastion/
         RemoteAccessCIDR: !Ref RemoteAccessCIDR
         VPCID: !Ref VPCID
-
