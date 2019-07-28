@@ -643,87 +643,82 @@ Resources:
     Type: 'AWS::Lambda::Function'
     Properties:
       Code:
-        ZipFile: !Join
-          - |+
-
-          - - import boto3
-            - import json
-            - import os
-            - ssm = boto3.client('ssm')
-            - sns = boto3.client('sns')
-            - codepipeline = boto3.client('codepipeline')
-            - 'ssm_parameter = os.environ[''codepipeline_token'']'
-            - 'pipeline_name = os.environ[''pipeline_name'']'
-            - 'task_name = os.environ[''dms_task'']'
-            - 'topic = os.environ[''notify_topic'']'
-            - 'def lambda_handler(event, context): '
-            - '    print(event)'
-            - '    str_subject = event[''Records''][0][''Sns''][''Subject'']'
-            - '    if ''APPROVAL NEEDED'' in str_subject:'
-            - '        print(''This is a Codepipeline approval action'')'
-            - '        str_sns = event[''Records''][0][''Sns''][''Message'']'
-            - '        sns_msg = json.loads(str_sns)'
-            - '        pipeline = sns_msg[''approval''][''pipelineName'']'
-            - '        stage = sns_msg[''approval''][''stageName'']'
-            - '        action = sns_msg[''approval''][''actionName'']'
-            - '        token = sns_msg[''approval''][''token'']'
-            - '        approve_param ="pipelineName=''%s'',stageName=''%s'',actionName=''%s'',token=''%s''" % ( pipeline , stage , action , token)'
-            - '        print(approve_param)'
-            - '        response = ssm.put_parameter(Name=ssm_parameter,'
-            - '            Value=approve_param,'
-            - '            Type=''String'','
-            - '            Overwrite=True'
-            - '            )'
-            - '    elif ''DMS'' in str_subject:'
-            - '        print(''This is a message from DMS'')'
-            - '        str_sns = event[''Records''][0][''Sns''][''Message'']'
-            - '        if ''attempt'' in str_sns:'
-            - '            print(str_sns)'
-            - '            print(''Event notification nothing will be done'')'
-            - '        else:'
-            - '            sns_msg = json.loads(str_sns)'
-            - '            print(sns_msg[''Event Message''])'
-            - '            dms_status = sns_msg[''Event Message'']'
-            - '            if ''STOPPED_AFTER_FULL_LOAD'' in dms_status:'
-            - '                print(''DMS task replication is stopped after full load, proceeding to put an approval in Codepipeline'')'
-            - '                result_pipeline(''Approved'')'
-            - '            elif ''started'' in dms_status:'
-            - '                print(''Lambda will do nothing at this step as the task is started'')'
-            - '            elif ''Create'' in dms_status:'
-            - '                print(''Lambda will do nothing at this step as the task is created'')'
-            - '            elif ''FAIL'' in dms_status.upper():'
-            - '                status = ''DMS task failed. Please check the task'''
-            - '                print(status)'
-            - '                subj = ''Status Update on DMS Task '' + os.environ[''dms_task'']'
-            - '                sns.publish(TopicArn = topic, Message = status, Subject = subj)'
-            - '                result_pipeline(''Rejected'')'
-            - '            else:'
-            - '                status = ''DMS task did not stop or errored out after full load. Please check the task'''
-            - '                print(status)'
-            - '                subj = ''Status Update on DMS Task '' + os.environ[''dms_task'']'
-            - '                sns.publish(TopicArn = topic, Message = status, Subject = subj)'
-            - '                result_pipeline(''Rejected'')'
-            - '          '
-            - '    else:'
-            - '        print(''This message is from neither Codepipeline Approval or DMS event. Nothing will be done'')'
-            - '            '
-            - '    '
-            - 'def result_pipeline(event):'
-            - '    print(''Getting Codepipeline parameters from SSM to put a %s'' %(event))'
-            - '    codepipeline_params = ssm.get_parameter(Name=ssm_parameter)[''Parameter''][''Value''].split("''")'
-            - '    print(codepipeline_params)'
-            - '    result_reponse = codepipeline.put_approval_result('
-            - '        pipelineName=codepipeline_params[1],'
-            - '        stageName=codepipeline_params[3],'
-            - '        actionName=codepipeline_params[5],'
-            - '        result={'
-            - '            ''summary'': event,'
-            - '            ''status'': event'
-            - '        },'
-            - '        token=codepipeline_params[7]'
-            - '    )'
-            - '    print(result_reponse)'
-            - ''
+        ZipFile: |
+          import boto3
+          import json
+          import os
+          ssm = boto3.client('ssm')
+          sns = boto3.client('sns')
+          codepipeline = boto3.client('codepipeline')
+          ssm_parameter = os.environ['codepipeline_token']
+          pipeline_name = os.environ['pipeline_name']
+          task_name = os.environ['dms_task']
+          topic = os.environ['notify_topic']
+          def lambda_handler(event, context):
+          print(event)
+          str_subject = event['Records'][0]['Sns']['Subject']
+          if 'APPROVAL NEEDED' in str_subject:
+            print('This is a Codepipeline approval action')
+            str_sns = event['Records'][0]['Sns']['Message']
+            sns_msg = json.loads(str_sns)
+            pipeline = sns_msg['approval']['pipelineName']
+            stage = sns_msg['approval']['stageName']
+            action = sns_msg['approval']['actionName']
+            token = sns_msg['approval']['token']
+            approve_param ="pipelineName='%s',stageName='%s',actionName='%s',token='%s'" % ( pipeline , stage , action , token)
+            print(approve_param)
+            response = ssm.put_parameter(Name=ssm_parameter,
+                Value=approve_param,
+                Type='String',
+                Overwrite=True
+                )
+          elif 'DMS' in str_subject:
+            print('This is a message from DMS')
+            str_sns = event['Records'][0]['Sns']['Message']
+            if 'attempt' in str_sns:
+              print(str_sns)
+              print('Event notification nothing will be done')
+            else:
+              sns_msg = json.loads(str_sns)
+              print(sns_msg['Event Message'])
+              dms_status = sns_msg['Event Message']
+              if 'STOPPED_AFTER_FULL_LOAD' in dms_status:
+                print('DMS task replication is stopped after full load, proceeding to put an approval in Codepipeline')
+                result_pipeline('Approved')
+              elif 'started' in dms_status:
+                print('Lambda will do nothing at this step as the task is started')
+              elif 'Create' in dms_status:
+                print('Lambda will do nothing at this step as the task is created')
+              elif 'FAIL' in dms_status.upper():
+                status = 'DMS task failed. Please check the task'
+                print(status)
+                subj = 'Status Update on DMS Task ' + os.environ['dms_task']
+                sns.publish(TopicArn = topic, Message = status, Subject = subj)
+                result_pipeline('Rejected')
+              else:
+                status = 'DMS task did not stop or errored out after full load. Please check the task'
+                print(status)
+                subj = 'Status Update on DMS Task ' + os.environ['dms_task']
+                sns.publish(TopicArn = topic, Message = status, Subject = subj)
+                result_pipeline('Rejected')
+          else:
+            print('This message is from neither Codepipeline Approval or DMS event. Nothing will be done')
+          def result_pipeline(event):
+            print('Getting Codepipeline parameters from SSM to put a %s' %(event))
+            codepipeline_params = ssm.get_parameter(Name=ssm_parameter)['Parameter']['Value'].split("'")
+            print(codepipeline_params)
+            result_reponse = codepipeline.put_approval_result(
+                pipelineName=codepipeline_params[1],
+                stageName=codepipeline_params[3],
+                actionName=codepipeline_params[5],
+                result={
+                    'summary': event,
+                    'status': event
+                },
+                token=codepipeline_params[7]
+            )
+            print(result_reponse)
+            
       Environment:
         Variables:
           codepipeline_token: !Ref rApplicationCodepipelineToken
@@ -777,60 +772,58 @@ Resources:
         - Arn
       Timeout: 300
       Code:
-        ZipFile: !Join
-          - |+
+        ZipFile: |
+          import boto3
+          import json
+          import cfnresponse
 
-          - - 'import boto3 '
-            - 'import json '
-            - 'import cfnresponse '
-            - ''
-            - 'def lambda_handler(event, context):  '
-            - '   rep_arn = event[''ResourceProperties''][''ReplicationInstanceArn''] '
-            - '   source_arn = event[''ResourceProperties''][''SourceArn''] '
-            - '   target_arn = event[''ResourceProperties''][''TargetArn''] '
-            - '   responseData = {} '
-            - ''
-            - '   try: '
-            - '       if event[''RequestType''] == ''Delete'': '
-            - '           print(''Nothing will be done on DeleteStack call'') '
-            - '       else: '
-            - '           print(''This is a %s event'' %(event[''RequestType''])) '
-            - '           source_status = dms_status(source_arn,rep_arn) '
-            - '           target_status = dms_status(target_arn,rep_arn) '
-            - '           if ''successful'' in source_status: '
-            - '               print(''Source endpoint was successfully tested'') '
-            - '               if ''successful'' in target_status: '
-            - '                   print(''Target endpoint was successfully tested'') '
-            - '               else: '
-            - '                   print(''Target endpoint was not tested. Please test connection with replication instance'') '
-            - '           else: '
-            - '               print(''Source endpoint was not tested. Please test connection with replication instance.'') '
-            - '       cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData, '''') '
-            - '   except Exception as e: '
-            - '       print(e) '
-            - '       cfnresponse.send(event, context, cfnresponse.FAILURE, {}, '''')'
-            - ''
-            - 'def dms_status(endpoint, rep_inst):'
-            - '    try:'
-            - '        dms_client = boto3.client(''dms'')'
-            - '        response = dms_client.describe_connections('
-            - '        Filters=['
-            - '            {'
-            - '                ''Name'': ''endpoint-arn'','
-            - '                ''Values'': [endpoint]'
-            - '            },'
-            - '            {'
-            - '                ''Name'': ''replication-instance-arn'','
-            - '                ''Values'': [rep_inst]'
-            - '            }'
-            - '            ]'
-            - '        )'
-            - '        e = response[''Connections''][0][''Status'']'
-            - '    except Exception as e:'
-            - '        print(''Error occured with replication instance: %s and endpoint: %s'' %(endpoint,rep_inst))'
-            - '        print (''Exception is %s'' %(e))'
-            - '    return e'
-            - ''
+          def lambda_handler(event, context):
+             rep_arn = event['ResourceProperties']['ReplicationInstanceArn']
+             source_arn = event['ResourceProperties']['SourceArn']
+             target_arn = event['ResourceProperties']['TargetArn']
+             responseData = {}
+
+             try:
+                 if event['RequestType'] == 'Delete':
+                     print('Nothing will be done on DeleteStack call')
+                 else:
+                     print('This is a %s event' %(event['RequestType']))
+                     source_status = dms_status(source_arn,rep_arn)
+                     target_status = dms_status(target_arn,rep_arn)
+                     if 'successful' in source_status:
+                         print('Source endpoint was successfully tested')
+                         if 'successful' in target_status:
+                             print('Target endpoint was successfully tested')
+                         else:
+                             print('Target endpoint was not tested. Please test connection with replication instance')
+                     else:
+                         print('Source endpoint was not tested. Please test connection with replication instance.')
+                 cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData, '')
+             except Exception as e:
+                 print(e)
+                 cfnresponse.send(event, context, cfnresponse.FAILURE, {}, '')
+
+          def dms_status(endpoint, rep_inst):
+              try:
+                  dms_client = boto3.client('dms')
+                  response = dms_client.describe_connections(
+                  Filters=[
+                      {
+                          'Name': 'endpoint-arn',
+                          'Values': [endpoint]
+                      },
+                      {
+                          'Name': 'replication-instance-arn',
+                          'Values': [rep_inst]
+                      }
+                      ]
+                  )
+                  e = response['Connections'][0]['Status']
+              except Exception as e:
+                  print('Error occured with replication instance: %s and endpoint: %s' %(endpoint,rep_inst))
+                  print ('Exception is %s' %(e))
+              return e
+
   rLambdaPermissionGrantSNS:
     Type: 'AWS::Lambda::Permission'
     Properties:
@@ -929,40 +922,30 @@ Resources:
       Runtime: python3.6
       Timeout: 240
       Code:
-        ZipFile: !Join
-          - |+
+        ZipFile: |
+          import boto3
+          import cfnresponse
+          import json
 
-          - - import boto3
-            - import cfnresponse
-            - import json
-            - ''
-            - 'def lambda_handler(event, context):'
-            - ''
-            - ''
-            - '    try:'
-            - '       '
-            - '        bucketcfn=event[''ResourceProperties''][''DestBucket'']'
-            - '        responseData = {}'
-            - ''
-            - '        if event[''RequestType''] == ''Create'': '
-            - '            print(''Create stack operation nothing will be done'') '
-            - '            print(bucketcfn)      '
-            - ''
-            - '        elif event[''RequestType''] == ''Delete'':'
-            - '            s3 = boto3.resource(''s3'')'
-            - '            bucket = s3.Bucket(bucketcfn)'
-            - '            bucket.object_versions.all().delete()'
-            - '            print(''Delete stack in progress the bucket is emptied'')'
-            - ''
-            - '        elif event[''RequestType''] == ''Update'':'
-            - '            print(''Update stack'')'
-            - ''
-            - '        cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '''')'
-            - ''
-            - '    except Exception as e:'
-            - '        print(e)'
-            - '        cfnresponse.send(event, context, cfnresponse.FAILURE, {}, '''')'
-            - ''
+          def lambda_handler(event, context):
+            try:
+              bucketcfn=event['ResourceProperties']['DestBucket']
+              responseData = {}
+              if event['RequestType'] == 'Create':
+                print('Create stack operation nothing will be done')
+                print(bucketcfn)
+              elif event['RequestType'] == 'Delete':
+                s3 = boto3.resource('s3')
+                bucket = s3.Bucket(bucketcfn)
+                bucket.object_versions.all().delete()
+                print('Delete stack in progress the bucket is emptied')
+              elif event['RequestType'] == 'Update':
+                print('Update stack')
+              cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
+            except Exception as e:
+              print(e)
+              cfnresponse.send(event, context, cfnresponse.FAILURE, {}, '')
+
 Outputs:
   oApplicationPipeline:
     Description: Pipeline for DMS tasks
