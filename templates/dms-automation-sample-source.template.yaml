@@ -90,7 +90,7 @@ Parameters:
     Default: 10.0.0.0/16
   DBName:
     AllowedPattern: "[a-zA-Z0-9]*"
-    Description: "Name of the Amazon Aurora database."
+    Description: "Name of the Sample Oracle database."
     MaxLength: "64"
     MinLength: "0"
     Default: 'ORCL'
