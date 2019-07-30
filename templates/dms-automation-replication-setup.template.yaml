@@ -137,10 +137,10 @@ Parameters:
   SecurityGroup:
     Description: 'Security group ID for DMS replication instance (e.g., sg-1234abcd)'
     Type: 'AWS::EC2::SecurityGroup::Id'
-  Subnets1:
+  PrivateSubnet1:
     Description: Choose a private subnet for DMS replication instance
     Type: 'AWS::EC2::Subnet::Id'
-  Subnets2:
+  PrivateSubnet2:
     Description: Choose a private subnet for DMS replication instance
     Type: 'AWS::EC2::Subnet::Id'
 
