@@ -42,7 +42,16 @@ Metadata:
           default: Migration Notifications
         Parameters:
           - pMigNotify
+      - Label:
+          default: Lambda Layer
+        Parameters:
+          - pLambdaLayerBucket
+          - pLambdaLayerKey
     ParameterLabels:
+      pLambdaLayerBucket:
+        default: Lambda Layer Bucket
+      pLambdaLayerKey:
+        default: Lambda Layer Key
       pCreateSample:
         default: Create Sample Source?
       pFullLoadOnly:
@@ -91,6 +100,12 @@ Conditions:
     - !Ref pCreateSample
     - 'yes'
 Parameters:
+  pLambdaLayerBucket:
+    Type: String
+    Description: S3 bucket with packaged boto3
+  pLambdaLayerKey:
+    Type: String
+    Description: S3 key with packaged boto3
   pCreateSample:
     Type: String
     Description: Please choose this option if you want to populate source database
@@ -718,7 +733,7 @@ Resources:
                 token=codepipeline_params[7]
             )
             print(result_reponse)
-            
+
       Environment:
         Variables:
           codepipeline_token: !Ref rApplicationCodepipelineToken
@@ -945,6 +960,99 @@ Resources:
             except Exception as e:
               print(e)
               cfnresponse.send(event, context, cfnresponse.FAILURE, {}, '')
+  DmsTaskCleanupRole:
+    Condition: cCreateSource
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      Path: /
+      Policies:
+        - PolicyName: dms-connection-access
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'dms:Describe*'
+                  - 'dms:DeleteReplicationTask'
+                  - 'dms:StopReplicationTask'
+                Resource: '*'
+  DmsTaskCleanupLayer:
+    Condition: cCreateSource
+    Type: 'AWS::Lambda::LayerVersion'
+    Properties:
+      CompatibleRuntimes:
+        - python3.6
+        - python3.7
+      Content:
+        S3Bucket: !Ref pLambdaLayerBucket
+        S3Key: !Ref pLambdaLayerKey
+      Description: Latest boto3 layer for DMS wait handler
+  CheckEndpointConnection:
+    Type: 'Custom::DmsEndpointConnectionTester'
+    Properties:
+      ServiceToken: !GetAtt
+        - DmsCleanupFunction
+        - Arn
+      TaskName: !Ref pTaskName
+
+  DmsCleanupFunction:
+    Condition: cCreateSource
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Description: Cleans up the DMS replication task
+      Handler: index.lambda_handler
+      Runtime: python3.6
+      Role: !GetAtt
+        - DmsTaskCleanupRole
+        - Arn
+      Timeout: 900
+      Layers:
+        - !Ref DmsTaskCleanupLayer
+      Code:
+        ZipFile: |
+          import cfnresponse
+          import json
+          import boto3
+          dms = boto3.client('dms')
+          def lambda_handler(event, context):
+            task_name = event['ResourceProperties']['TaskName']
+            try:
+              if 'Create' or 'Update' in event['RequestType']:
+                print ('This is a %s event. Nothing will be done' %(event['RequestType']))
+              else:
+                print('Delete event. Task will be stopped and deleted')
+                task_arn = dms.describe_replication_tasks(
+                  Filters=[
+                    {
+                      'Name': 'replication-task-id',
+                      'Values':task_name
+                    }
+                  ]
+                  )['ReplicationTasks'][0]['ReplicationTaskArn']
+                print('The task arn is %s' %(task_arn))
+
+                dms.stop_replication_task(ReplicationTaskArn=task_arn)
+                waiter_stop = dms.get_waiter('replication_task_stopped')
+                waiter_stop.wait(Filters=[{'Name': 'replication-task-arn','Values':[task_arn]}])
+
+                dms.delete_replication_task(ReplicationTaskArn=task_arn)
+                waiter = dms.get_waiter('replication_task_deleted')
+                waiter.wait(Filters=[{'Name': 'replication-task-arn','Values':[task_arn]}])
+
+              cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
+
+            except Exception as e:
+              print(e)
+              cfnresponse.send(event, context, cfnresponse.FAILED, {}, '')
 
 Outputs:
   oApplicationPipeline:
