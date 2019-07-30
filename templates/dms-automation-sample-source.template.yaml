@@ -187,3 +187,6 @@ Outputs:
   SampleSourcePort:
     Description: Sample Source Oracle RDS Port
     Value: !GetAtt SourceDB.Endpoint.Port
+  SampleSecurityGroup:
+    Description: Sample Security Group
+    Value: !If [CreateSecurityGroup, !Ref RDSSecurityGroup, !Ref CustomDBSecurityGroup]
