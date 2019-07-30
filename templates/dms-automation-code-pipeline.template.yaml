@@ -364,9 +364,9 @@ Resources:
           - Name: REPLICATION_INSTANCE_ARN
             Type: PLAINTEXT
             Value: !Ref pDmsReplicationArn
-          - Name: SNS_TOPIC
+          - Name: NOTIFY_SNS
             Type: PLAINTEXT
-            Value: !Ref rSnsApproval
+            Value: !Ref rMigNotify
         Image: 'aws/codebuild/ubuntu-base:14.04'
         Type: LINUX_CONTAINER
       Name: !Sub 'Codebuild-${AWS::StackName}-setupTarget'
