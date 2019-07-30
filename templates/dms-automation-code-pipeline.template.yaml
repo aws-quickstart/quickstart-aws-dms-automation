@@ -125,43 +125,35 @@ Parameters:
     Description: This email will get notifications on Migration Status
   pCodeBuildSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup::Id'
-    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
     Description: Security group used by CodeBuild. Please ensure that this has access to
       RDS endpoint
   pCodeBuildSubnet:
     Type: 'AWS::EC2::Subnet::Id'
-    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
+
     Description: Private subnet id with NAT gateway where codebuild will be launched
   pCodeBuildVPC:
     Type: 'AWS::EC2::VPC::Id'
-    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
     Description: VPC Id where codebuild will be launched. Subnet and security group should
       belong to this VPC.
   pS3BucketKey:
     Type: String
-    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
     Description: The location of file which is used as source for CodePipeline
   pS3BucketName:
     Type: String
-    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
     Description: The name of the S3 bucket where the code resides. This will be used as
       source for the CodePipeline
   pRDSEndpoint:
     Type: String
-    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
     Description: RDS endpoint where the schema changes will take place
   pRDSName:
     Type: String
-    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
     Description: RDS database name for deployments
   pRDSPassword:
     Type: String
-    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
     Description: The database user password for deployment
     NoEcho: 'true'
   pRDSUser:
     Type: String
-    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
     Description: RDS database user name
   pSourceRDSEndpoint:
     Type: String
@@ -178,7 +170,6 @@ Parameters:
     Description: RDS database user name
   pTaskName:
     Type: String
-    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
     Description: Name of DMS task
   pDmsSourceArn:
     Type: String

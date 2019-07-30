@@ -117,7 +117,7 @@ Conditions:
 Resources:
   SourceDB:
     Properties:
-      AllocatedStorage: '50'
+      AllocatedStorage: '100'
       BackupRetentionPeriod: !Ref DBBackupRetentionPeriod
       DBInstanceClass: !Ref DBInstanceClass
       DBSubnetGroupName: !Ref SourceDBSubnetGroup
