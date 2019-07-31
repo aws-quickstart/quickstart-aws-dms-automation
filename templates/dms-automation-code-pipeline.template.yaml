@@ -93,6 +93,9 @@ Metadata:
       pDmsReplicationArn:
         default: Replication instance Arn
 Conditions:
+  cTaskName: !Equals
+    - !Ref pTaskName
+    - ''
   cCdc: !Equals
     - !Ref pFullLoadOnly
     - 'no'
@@ -170,7 +173,7 @@ Parameters:
     Description: RDS database user name
   pTaskName:
     Type: String
-    Description: Name of DMS task
+    Description: Name of DMS task. If left blank stack name will be used.
   pDmsSourceArn:
     Type: String
     Description: Arn of source endpoint which was successfully tested with replication
@@ -354,7 +357,7 @@ Resources:
             Value: !Ref pRDSUser
           - Name: TASK_NAME
             Type: PLAINTEXT
-            Value: !Ref pTaskName
+            Value: !If [cTaskName, !Ref AWS::StackName, !Ref pTaskName]
           - Name: SOURCE_ENDPOINT_ARN
             Type: PLAINTEXT
             Value: !Ref pDmsSourceArn
@@ -418,7 +421,7 @@ Resources:
             Value: !Ref rMigNotify
           - Name: TASK_NAME
             Type: PLAINTEXT
-            Value: !Ref pTaskName
+            Value: !If [cTaskName, !Ref AWS::StackName, !Ref pTaskName]
         Image: 'aws/codebuild/standard:1.0'
         Type: LINUX_CONTAINER
       Name: !Sub 'Codebuild-${AWS::StackName}-preCDC'
@@ -732,7 +735,7 @@ Resources:
         Variables:
           codepipeline_token: !Ref rApplicationCodepipelineToken
           pipeline_name: !Ref rAppPipeline
-          dms_task: !Ref pTaskName
+          dms_task: !If [cTaskName, !Ref AWS::StackName, !Ref pTaskName]
           notify_topic: !Ref rMigNotify
       Handler: index.lambda_handler
       Runtime: python3.6
@@ -996,7 +999,7 @@ Resources:
       ServiceToken: !GetAtt
         - DmsCleanupFunction
         - Arn
-      TaskName: !Ref pTaskName
+      TaskName: !If [cTaskName, !Ref AWS::StackName, !Ref pTaskName]
 
   DmsCleanupFunction:
     Condition: cCreateSource
