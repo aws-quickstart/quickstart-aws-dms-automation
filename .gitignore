@@ -1,4 +1,5 @@
 templates/quickstart-aws-dms-automation-example-params1.json
 templates/testing.yaml
 templates/testing.params
+templates/testing0.params
 .DS_Store
