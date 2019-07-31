@@ -370,7 +370,7 @@ Resources:
           - Name: NOTIFY_SNS
             Type: PLAINTEXT
             Value: !Ref rMigNotify
-        Image: 'aws/codebuild/ubuntu-base:14.04'
+        Image: 'aws/codebuild/standard:1.0'
         Type: LINUX_CONTAINER
       Name: !Sub 'Codebuild-${AWS::StackName}-setupTarget'
       ServiceRole: !GetAtt
@@ -419,7 +419,7 @@ Resources:
           - Name: TASK_NAME
             Type: PLAINTEXT
             Value: !Ref pTaskName
-        Image: 'aws/codebuild/ubuntu-base:14.04'
+        Image: 'aws/codebuild/standard:1.0'
         Type: LINUX_CONTAINER
       Name: !Sub 'Codebuild-${AWS::StackName}-preCDC'
       ServiceRole: !GetAtt
