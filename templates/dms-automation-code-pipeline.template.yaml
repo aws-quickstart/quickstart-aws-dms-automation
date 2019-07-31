@@ -84,8 +84,6 @@ Metadata:
         default: Source Database Name
       pSourceRDSUser:
         default: Source Database Username
-      pSourceRDSPassword:
-        default: Source Database Password
       pDmsSourceArn:
         default: Source Endpoint Arn
       pDmsTargetArn:
@@ -357,7 +355,7 @@ Resources:
             Value: !Ref pRDSUser
           - Name: TASK_NAME
             Type: PLAINTEXT
-            Value: !If [cTaskName, !Ref AWS::StackName, !Ref pTaskName]
+            Value: !If [cTaskName, !Ref 'AWS::StackName', !Ref pTaskName]
           - Name: SOURCE_ENDPOINT_ARN
             Type: PLAINTEXT
             Value: !Ref pDmsSourceArn
@@ -421,7 +419,7 @@ Resources:
             Value: !Ref rMigNotify
           - Name: TASK_NAME
             Type: PLAINTEXT
-            Value: !If [cTaskName, !Ref AWS::StackName, !Ref pTaskName]
+            Value: !If [cTaskName, !Ref 'AWS::StackName', !Ref pTaskName]
         Image: 'aws/codebuild/standard:1.0'
         Type: LINUX_CONTAINER
       Name: !Sub 'Codebuild-${AWS::StackName}-preCDC'
@@ -735,7 +733,7 @@ Resources:
         Variables:
           codepipeline_token: !Ref rApplicationCodepipelineToken
           pipeline_name: !Ref rAppPipeline
-          dms_task: !If [cTaskName, !Ref AWS::StackName, !Ref pTaskName]
+          dms_task: !If [cTaskName, !Ref 'AWS::StackName', !Ref pTaskName]
           notify_topic: !Ref rMigNotify
       Handler: index.lambda_handler
       Runtime: python3.6
@@ -993,13 +991,13 @@ Resources:
         S3Bucket: !Ref pLambdaLayerBucket
         S3Key: !Ref pLambdaLayerKey
       Description: Latest boto3 layer for DMS wait handler
-  CheckEndpointConnection:
-    Type: 'Custom::DmsEndpointConnectionTester'
+  DmsCleanupResource:
+    Type: 'Custom::DmsCleanupResource'
     Properties:
       ServiceToken: !GetAtt
         - DmsCleanupFunction
         - Arn
-      TaskName: !If [cTaskName, !Ref AWS::StackName, !Ref pTaskName]
+      TaskName: !If [cTaskName, !Ref 'AWS::StackName', !Ref pTaskName]
 
   DmsCleanupFunction:
     Condition: cCreateSource
@@ -1025,16 +1023,10 @@ Resources:
             try:
               if 'Create' or 'Update' in event['RequestType']:
                 print ('This is a %s event. Nothing will be done' %(event['RequestType']))
-              else:
+                cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
+              elif event['RequestType'] = 'Delete':
                 print('Delete event. Task will be stopped and deleted')
-                task_arn = dms.describe_replication_tasks(
-                  Filters=[
-                    {
-                      'Name': 'replication-task-id',
-                      'Values':task_name
-                    }
-                  ]
-                  )['ReplicationTasks'][0]['ReplicationTaskArn']
+                task_arn = dms.describe_replication_tasks(Filters=[{'Name': 'replication-task-id','Values':task_name}])['ReplicationTasks'][0]['ReplicationTaskArn']
                 print('The task arn is %s' %(task_arn))
 
                 dms.stop_replication_task(ReplicationTaskArn=task_arn)
@@ -1044,8 +1036,9 @@ Resources:
                 dms.delete_replication_task(ReplicationTaskArn=task_arn)
                 waiter = dms.get_waiter('replication_task_deleted')
                 waiter.wait(Filters=[{'Name': 'replication-task-arn','Values':[task_arn]}])
+                cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
 
-              cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
+
 
             except Exception as e:
               print(e)
