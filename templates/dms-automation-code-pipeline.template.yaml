@@ -364,6 +364,9 @@ Resources:
           - Name: REPLICATION_INSTANCE_ARN
             Type: PLAINTEXT
             Value: !Ref pDmsReplicationArn
+          - Name: SNS_TOPIC
+            Type: PLAINTEXT
+            Value: !Ref rSnsApproval
           - Name: NOTIFY_SNS
             Type: PLAINTEXT
             Value: !Ref rMigNotify
