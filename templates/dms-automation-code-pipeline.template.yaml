@@ -91,9 +91,6 @@ Metadata:
       pDmsReplicationArn:
         default: Replication instance Arn
 Conditions:
-  cTaskName: !Equals
-    - !Ref pTaskName
-    - ''
   cCdc: !Equals
     - !Ref pFullLoadOnly
     - 'no'
@@ -171,7 +168,11 @@ Parameters:
     Description: RDS database user name
   pTaskName:
     Type: String
-    Description: Name of DMS task. If left blank stack name will be used.
+    Description: Name of DMS task. Please make sure that its lowercase alphanumeric.
+    MinLength: 1
+    MaxLength: 200
+    AllowedPattern: ^[a-z0-9]*$
+    ConstraintDescription: must be lowercase characters with numbers
   pDmsSourceArn:
     Type: String
     Description: Arn of source endpoint which was successfully tested with replication
@@ -355,7 +356,7 @@ Resources:
             Value: !Ref pRDSUser
           - Name: TASK_NAME
             Type: PLAINTEXT
-            Value: !If [cTaskName, !Ref 'AWS::StackName', !Ref pTaskName]
+            Value: !Ref pTaskName
           - Name: SOURCE_ENDPOINT_ARN
             Type: PLAINTEXT
             Value: !Ref pDmsSourceArn
@@ -419,7 +420,7 @@ Resources:
             Value: !Ref rMigNotify
           - Name: TASK_NAME
             Type: PLAINTEXT
-            Value: !If [cTaskName, !Ref 'AWS::StackName', !Ref pTaskName]
+            Value: !Ref pTaskName
         Image: 'aws/codebuild/standard:1.0'
         Type: LINUX_CONTAINER
       Name: !Sub 'Codebuild-${AWS::StackName}-preCDC'
@@ -733,7 +734,7 @@ Resources:
         Variables:
           codepipeline_token: !Ref rApplicationCodepipelineToken
           pipeline_name: !Ref rAppPipeline
-          dms_task: !If [cTaskName, !Ref 'AWS::StackName', !Ref pTaskName]
+          dms_task: !Ref pTaskName
           notify_topic: !Ref rMigNotify
       Handler: index.lambda_handler
       Runtime: python3.6
@@ -997,7 +998,7 @@ Resources:
       ServiceToken: !GetAtt
         - DmsCleanupFunction
         - Arn
-      TaskName: !If [cTaskName, !Ref 'AWS::StackName', !Ref pTaskName]
+      TaskName: !Ref pTaskName
 
   DmsCleanupFunction:
     Condition: cCreateSource
@@ -1043,6 +1044,7 @@ Resources:
             except Exception as e:
               print(e)
               cfnresponse.send(event, context, cfnresponse.FAILED, {}, '')
+
 
 Outputs:
   oApplicationPipeline:
