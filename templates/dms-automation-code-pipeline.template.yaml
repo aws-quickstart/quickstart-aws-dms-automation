@@ -993,6 +993,7 @@ Resources:
         S3Key: !Ref pLambdaLayerKey
       Description: Latest boto3 layer for DMS wait handler
   DmsCleanupResource:
+    Condition: cCreateSource
     Type: 'Custom::DmsCleanupResource'
     Properties:
       ServiceToken: !GetAtt
