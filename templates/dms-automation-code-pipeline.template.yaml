@@ -1021,10 +1021,14 @@ Resources:
           def lambda_handler(event, context):
             task_name = event['ResourceProperties']['TaskName']
             try:
-              if 'Create' or 'Update' in event['RequestType']:
+              if event['RequestType'] == 'Create':
                 print ('This is a %s event. Nothing will be done' %(event['RequestType']))
                 cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
-              elif event['RequestType'] = 'Delete':
+              elif event['RequestType'] == 'Update':
+                print ('This is a %s event. Nothing will be done' %(event['RequestType']))
+                cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
+
+              elif event['RequestType'] == 'Delete':
                 print('Delete event. Task will be stopped and deleted')
                 task_arn = dms.describe_replication_tasks(Filters=[{'Name': 'replication-task-id','Values':task_name}])['ReplicationTasks'][0]['ReplicationTaskArn']
                 print('The task arn is %s' %(task_arn))
