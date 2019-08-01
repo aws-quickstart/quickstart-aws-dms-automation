@@ -1018,16 +1018,23 @@ Resources:
           import cfnresponse
           import json
           import boto3
+          import time
+
           dms = boto3.client('dms')
           def lambda_handler(event, context):
             task_name = event['ResourceProperties']['TaskName'].lower()
+            print(event)
             try:
               if 'Create' or 'Update' in event['RequestType']:
+                time.sleep(5)
                 print ('This is a %s event. Nothing will be done' %(event['RequestType']))
+                print ('Task name is %s' %(task_name))
                 cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
-              elif event['RequestType'] == 'Delete':
+              elif 'Delete' in event['RequestType']:
+                time.sleep(5)
                 print('Delete event. Task will be stopped and deleted')
-                task_arn = dms.describe_replication_tasks(Filters=[{'Name': 'replication-task-id','Values':task_name}])['ReplicationTasks'][0]['ReplicationTaskArn']
+                task_des = dms.describe_replication_tasks(Filters=[{'Name': 'replication-task-id','Values':task_name}])
+                task_arn = task_des['ReplicationTasks'][0]['ReplicationTaskArn']
                 print('The task arn is %s' %(task_arn))
 
                 dms.stop_replication_task(ReplicationTaskArn=task_arn)
@@ -1043,6 +1050,7 @@ Resources:
 
             except Exception as e:
               print(e)
+              time.sleep(5)
               cfnresponse.send(event, context, cfnresponse.FAILED, {}, '')
 
 
