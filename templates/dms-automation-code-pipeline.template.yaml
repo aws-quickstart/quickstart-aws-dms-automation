@@ -91,6 +91,9 @@ Metadata:
       pDmsReplicationArn:
         default: Replication instance Arn
 Conditions:
+  cTaskName: !Equals
+    - !Ref pTaskName
+    - ''
   cCdc: !Equals
     - !Ref pFullLoadOnly
     - 'no'
@@ -168,11 +171,7 @@ Parameters:
     Description: RDS database user name
   pTaskName:
     Type: String
-    Description: Name of DMS task. Please make sure that its lowercase alphanumeric.
-    MinLength: 1
-    MaxLength: 200
-    AllowedPattern: ^[a-z0-9]*$
-    ConstraintDescription: must be lowercase characters with numbers
+    Description: Name of DMS task. If left blank stack name will be used.
   pDmsSourceArn:
     Type: String
     Description: Arn of source endpoint which was successfully tested with replication
@@ -356,7 +355,7 @@ Resources:
             Value: !Ref pRDSUser
           - Name: TASK_NAME
             Type: PLAINTEXT
-            Value: !Ref pTaskName
+            Value: !If [cTaskName, !Ref 'AWS::StackName', !Ref pTaskName]
           - Name: SOURCE_ENDPOINT_ARN
             Type: PLAINTEXT
             Value: !Ref pDmsSourceArn
@@ -420,7 +419,7 @@ Resources:
             Value: !Ref rMigNotify
           - Name: TASK_NAME
             Type: PLAINTEXT
-            Value: !Ref pTaskName
+            Value: !If [cTaskName, !Ref 'AWS::StackName', !Ref pTaskName]
         Image: 'aws/codebuild/standard:1.0'
         Type: LINUX_CONTAINER
       Name: !Sub 'Codebuild-${AWS::StackName}-preCDC'
@@ -663,78 +662,78 @@ Resources:
           codepipeline = boto3.client('codepipeline')
           ssm_parameter = os.environ['codepipeline_token']
           pipeline_name = os.environ['pipeline_name']
-          task_name = os.environ['dms_task']
+          task_name = os.environ['dms_task'].lower()
           topic = os.environ['notify_topic']
           def lambda_handler(event, context):
-          print(event)
-          str_subject = event['Records'][0]['Sns']['Subject']
-          if 'APPROVAL NEEDED' in str_subject:
-            print('This is a Codepipeline approval action')
-            str_sns = event['Records'][0]['Sns']['Message']
-            sns_msg = json.loads(str_sns)
-            pipeline = sns_msg['approval']['pipelineName']
-            stage = sns_msg['approval']['stageName']
-            action = sns_msg['approval']['actionName']
-            token = sns_msg['approval']['token']
-            approve_param ="pipelineName='%s',stageName='%s',actionName='%s',token='%s'" % ( pipeline , stage , action , token)
-            print(approve_param)
-            response = ssm.put_parameter(Name=ssm_parameter,
-                Value=approve_param,
-                Type='String',
-                Overwrite=True
-                )
-          elif 'DMS' in str_subject:
-            print('This is a message from DMS')
-            str_sns = event['Records'][0]['Sns']['Message']
-            if 'attempt' in str_sns:
-              print(str_sns)
-              print('Event notification nothing will be done')
-            else:
+            print(event)
+            str_subject = event['Records'][0]['Sns']['Subject']
+            if 'APPROVAL NEEDED' in str_subject:
+              print('This is a Codepipeline approval action')
+              str_sns = event['Records'][0]['Sns']['Message']
               sns_msg = json.loads(str_sns)
-              print(sns_msg['Event Message'])
-              dms_status = sns_msg['Event Message']
-              if 'STOPPED_AFTER_FULL_LOAD' in dms_status:
-                print('DMS task replication is stopped after full load, proceeding to put an approval in Codepipeline')
-                result_pipeline('Approved')
-              elif 'started' in dms_status:
-                print('Lambda will do nothing at this step as the task is started')
-              elif 'Create' in dms_status:
-                print('Lambda will do nothing at this step as the task is created')
-              elif 'FAIL' in dms_status.upper():
-                status = 'DMS task failed. Please check the task'
-                print(status)
-                subj = 'Status Update on DMS Task ' + os.environ['dms_task']
-                sns.publish(TopicArn = topic, Message = status, Subject = subj)
-                result_pipeline('Rejected')
+              pipeline = sns_msg['approval']['pipelineName']
+              stage = sns_msg['approval']['stageName']
+              action = sns_msg['approval']['actionName']
+              token = sns_msg['approval']['token']
+              approve_param ="pipelineName='%s',stageName='%s',actionName='%s',token='%s'" % ( pipeline , stage , action , token)
+              print(approve_param)
+              response = ssm.put_parameter(Name=ssm_parameter,
+                  Value=approve_param,
+                  Type='String',
+                  Overwrite=True
+                  )
+            elif 'DMS' in str_subject:
+              print('This is a message from DMS')
+              str_sns = event['Records'][0]['Sns']['Message']
+              if 'attempt' in str_sns:
+                print(str_sns)
+                print('Event notification nothing will be done')
               else:
-                status = 'DMS task did not stop or errored out after full load. Please check the task'
-                print(status)
-                subj = 'Status Update on DMS Task ' + os.environ['dms_task']
-                sns.publish(TopicArn = topic, Message = status, Subject = subj)
-                result_pipeline('Rejected')
-          else:
-            print('This message is from neither Codepipeline Approval or DMS event. Nothing will be done')
-          def result_pipeline(event):
-            print('Getting Codepipeline parameters from SSM to put a %s' %(event))
-            codepipeline_params = ssm.get_parameter(Name=ssm_parameter)['Parameter']['Value'].split("'")
-            print(codepipeline_params)
-            result_reponse = codepipeline.put_approval_result(
-                pipelineName=codepipeline_params[1],
-                stageName=codepipeline_params[3],
-                actionName=codepipeline_params[5],
-                result={
-                    'summary': event,
-                    'status': event
-                },
-                token=codepipeline_params[7]
-            )
-            print(result_reponse)
+                sns_msg = json.loads(str_sns)
+                print(sns_msg['Event Message'])
+                dms_status = sns_msg['Event Message']
+                if 'STOPPED_AFTER_FULL_LOAD' in dms_status:
+                  print('DMS task replication is stopped after full load, proceeding to put an approval in Codepipeline')
+                  result_pipeline('Approved')
+                elif 'started' in dms_status:
+                  print('Lambda will do nothing at this step as the task is started')
+                elif 'Create' in dms_status:
+                  print('Lambda will do nothing at this step as the task is created')
+                elif 'FAIL' in dms_status.upper():
+                  status = 'DMS task failed. Please check the task'
+                  print(status)
+                  subj = 'Status Update on DMS Task ' + task_name
+                  sns.publish(TopicArn = topic, Message = status, Subject = subj)
+                  result_pipeline('Rejected')
+                else:
+                  status = 'DMS task did not stop or errored out after full load. Please check the task'
+                  print(status)
+                  subj = 'Status Update on DMS Task ' + task_name
+                  sns.publish(TopicArn = topic, Message = status, Subject = subj)
+                  result_pipeline('Rejected')
+            else:
+              print('This message is from neither Codepipeline Approval or DMS event. Nothing will be done')
+            def result_pipeline(event):
+              print('Getting Codepipeline parameters from SSM to put a %s' %(event))
+              codepipeline_params = ssm.get_parameter(Name=ssm_parameter)['Parameter']['Value'].split("'")
+              print(codepipeline_params)
+              result_reponse = codepipeline.put_approval_result(
+                  pipelineName=codepipeline_params[1],
+                  stageName=codepipeline_params[3],
+                  actionName=codepipeline_params[5],
+                  result={
+                      'summary': event,
+                      'status': event
+                  },
+                  token=codepipeline_params[7]
+              )
+              print(result_reponse)
 
       Environment:
         Variables:
           codepipeline_token: !Ref rApplicationCodepipelineToken
           pipeline_name: !Ref rAppPipeline
-          dms_task: !Ref pTaskName
+          dms_task: !If [cTaskName, !Ref 'AWS::StackName', !Ref pTaskName]
           notify_topic: !Ref rMigNotify
       Handler: index.lambda_handler
       Runtime: python3.6
@@ -999,7 +998,7 @@ Resources:
       ServiceToken: !GetAtt
         - DmsCleanupFunction
         - Arn
-      TaskName: !Ref pTaskName
+      TaskName: !If [cTaskName, !Ref 'AWS::StackName', !Ref pTaskName]
 
   DmsCleanupFunction:
     Condition: cCreateSource
@@ -1021,7 +1020,7 @@ Resources:
           import boto3
           dms = boto3.client('dms')
           def lambda_handler(event, context):
-            task_name = event['ResourceProperties']['TaskName']
+            task_name = event['ResourceProperties']['TaskName'].lower()
             try:
               if 'Create' or 'Update' in event['RequestType']:
                 print ('This is a %s event. Nothing will be done' %(event['RequestType']))
