@@ -713,21 +713,21 @@ Resources:
                   result_pipeline('Rejected')
             else:
               print('This message is from neither Codepipeline Approval or DMS event. Nothing will be done')
-            def result_pipeline(event):
-              print('Getting Codepipeline parameters from SSM to put a %s' %(event))
-              codepipeline_params = ssm.get_parameter(Name=ssm_parameter)['Parameter']['Value'].split("'")
-              print(codepipeline_params)
-              result_reponse = codepipeline.put_approval_result(
-                  pipelineName=codepipeline_params[1],
-                  stageName=codepipeline_params[3],
-                  actionName=codepipeline_params[5],
-                  result={
-                      'summary': event,
-                      'status': event
-                  },
-                  token=codepipeline_params[7]
-              )
-              print(result_reponse)
+          def result_pipeline(event):
+            print('Getting Codepipeline parameters from SSM to put a %s' %(event))
+            codepipeline_params = ssm.get_parameter(Name=ssm_parameter)['Parameter']['Value'].split("'")
+            print(codepipeline_params)
+            result_reponse = codepipeline.put_approval_result(
+                pipelineName=codepipeline_params[1],
+                stageName=codepipeline_params[3],
+                actionName=codepipeline_params[5],
+                result={
+                    'summary': event,
+                    'status': event
+                },
+                token=codepipeline_params[7]
+            )
+            print(result_reponse)
 
       Environment:
         Variables:
