@@ -91,6 +91,7 @@ Metadata:
 Parameters:
   CreateNewReplicationInstance:
     Type: String
+    Default: 'yes'
     AllowedValues:
       - 'yes'
       - 'no'
@@ -150,6 +151,7 @@ Parameters:
   SourceEngine:
     Type: String
     Description: Database engine running on the source
+    Default: oracle
     AllowedValues:
       - mysql
       - oracle
@@ -187,6 +189,7 @@ Parameters:
       - aurora-postgresql
       - redshift
       - sqlserver
+    Default: aurora-postgresql
   TargetPassword:
     Type: String
     Description: Target database password
