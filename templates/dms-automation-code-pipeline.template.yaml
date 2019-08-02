@@ -1025,12 +1025,7 @@ Resources:
             task_name = event['ResourceProperties']['TaskName'].lower()
             print(event)
             try:
-              if 'Create' or 'Update' in event['RequestType']:
-                time.sleep(5)
-                print ('This is a %s event. Nothing will be done' %(event['RequestType']))
-                print ('Task name is %s' %(task_name))
-                cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
-              elif 'Delete' in event['RequestType']:
+              if event['RequestType'] == 'Delete':
                 time.sleep(5)
                 print('Delete event. Task will be stopped and deleted')
                 task_des = dms.describe_replication_tasks(Filters=[{'Name': 'replication-task-id','Values':task_name}])
@@ -1045,8 +1040,13 @@ Resources:
                 waiter = dms.get_waiter('replication_task_deleted')
                 waiter.wait(Filters=[{'Name': 'replication-task-arn','Values':[task_arn]}])
                 cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
-
-
+                
+              else:
+                time.sleep(5)
+                print ('This is a %s event. Nothing will be done' %(event['RequestType']))
+                print ('Task name is %s' %(task_name))
+                cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
+                
 
             except Exception as e:
               print(e)
