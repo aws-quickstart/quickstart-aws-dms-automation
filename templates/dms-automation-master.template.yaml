@@ -423,15 +423,19 @@ Resources:
       - DMSReplicationStack
     Type: 'AWS::CloudFormation::Stack'
     Properties:
-      TemplateURL: !Sub https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-code-pipeline.template.yaml
+      TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-code-pipeline.template.yaml
       Parameters:
         pMigNotify: !Ref pMigNotify
         pTaskName: !Ref pTaskName
         pCodeBuildVPC: !If [CreateSample, !GetAtt VPCStack.Outputs.VPCID, !Ref pCodeBuildVPC]
         pCodeBuildSubnet: !If [CreateSample, !GetAtt VPCStack.Outputs.PrivateSubnet1AID, !Ref pCodeBuildSubnet]
         pCodeBuildSecurityGroup: !If [CreateSample, !GetAtt DMSSampleSourceSetup.Outputs.SampleSecurityGroup, !Ref pCodeBuildSecurityGroup]
-        pS3BucketName: !Ref pS3BucketName
-        pS3BucketKey: !Ref pS3BucketKey
+        pS3BucketName: !Ref S3Bucket
+        pS3BucketKey: 
+          !If 
+            - CreateSample 
+            - !Sub ${QSS3KeyPrefix}/scripts/test.zip
+            - !Ref pS3BucketKey
         pRDSEndpoint: !If [CreateSample, !GetAtt AuroraStack.Outputs.RDSEndPointAddress, !Ref pRDSEndpoint]
         pRDSName:  !If [CreateSample, !FindInMap [TemplateParameters, TargetParameters, DBName] , !Ref pRDSName]
         pRDSUser: !If [CreateSample, !FindInMap [TemplateParameters, TargetParameters, DBMasterUsername] , !Ref pRDSUser]
@@ -454,7 +458,7 @@ Resources:
     Condition: CreateSample
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-sample-source.template.yaml
+      TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-sample-source.template.yaml
       Parameters:
         VPCID: !GetAtt VPCStack.Outputs.VPCID
         Subnet1ID: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
@@ -470,10 +474,10 @@ Resources:
     Condition: CreateReplicationInst
     Type: 'AWS::CloudFormation::Stack'
     Properties:
-      TemplateURL: !Sub https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-replication-setup.template.yaml
+      TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-replication-setup.template.yaml
       Parameters:
-        LayerBucket: !Ref LayerBucket
-        LayerKey:  !Ref LayerKey
+        LayerBucket: !Ref S3Bucket
+        LayerKey:  !Sub ${QSS3KeyPrefix}/scripts/boto3.zip
         CreateNewReplicationInstance: !If [CreateSample, 'yes', !Ref CreateNewReplicationInstance]
         ReplInstanceArn: !Ref pDmsReplicationArn
         PrivateSubnet1: !If [CreateSample, !GetAtt VPCStack.Outputs.PrivateSubnet1AID, !FindInMap [TemplateParameters, ReplicationInstanceParameters, PrivateSubnet1]]
@@ -496,3 +500,92 @@ Resources:
         TargetEndpointServer: !If [CreateSample, !GetAtt AuroraStack.Outputs.RDSEndPointAddress, !Ref TargetEndpointServer]
         TargetUser: !If [CreateSample, !FindInMap [TemplateParameters, TargetParameters, DBMasterUsername], !Ref TargetUser]
 
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+  CopyS3FunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      Path: /
+      Policies:
+        - PolicyName: s3-access
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:PutObject'
+                  - 's3:GetObject'
+                Resource: !Sub 'aws:${AWS::Partition}:s3:::${S3Bucket}*'
+  CopyFiles:
+    Type: 'Custom::CopyFiles'
+    Properties:
+      ServiceToken: !GetAtt
+        - CopyS3Function
+        - Arn
+      Bucket: !Ref S3Bucket
+      Source: !Ref QSS3BucketName
+      Prefix: !Ref QSS3KeyPrefix
+      Objects:
+        - scripts/boto3.zip
+        - scripts/test.zip
+      
+  CopyS3Function:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        ZipFile: !Sub
+            |
+            import cfnresponse
+            import boto3
+            import traceback
+            import json
+
+            
+            def lambda_handler(event, context):
+            # TODO implement
+                try:
+                    print('Received event: %s' % json.dumps(event))
+                    bucket = event['ResourceProperties']['Bucket']
+                    source_bucket = event['ResourceProperties']['Source']
+                    source_bucket_prefix = event['ResourceProperties']['Prefix']
+                    objects = event['ResourceProperties']['Objects']
+                    if event['RequestType'] == 'Delete':
+                        s3 = boto3.resource('s3')
+                        bucket = s3.Bucket(bucket)
+                        bucket.object_versions.all().delete()
+                        print('Delete stack in progress the bucket is emptied')
+                    elif event['RequestType'] == 'Update':
+                        print('Stack is getting updated nothing will be done')
+                    elif event['RequestType'] == 'Create':
+                        s3 = boto3.client('s3')
+                        for o in objects:
+                            key = source_bucket_prefix + o
+                            copy_source={
+                                'Bucket': source_bucket,
+                                'Key': key
+                            }
+                        s3.copy_object(CopySource=copy_source, Bucket=bucket, Key=key)
+                    cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
+                except:
+                    print traceback.print_exc()
+                    cfnresponse.send(event, context, cfnresponse.FAILED, {}, '')
+      Role: !GetAtt
+        - CopyS3FunctionRole
+        - Arn
+      Runtime: python3.7
+      Handler: index.lambda_handler
+      Timeout: '600'
