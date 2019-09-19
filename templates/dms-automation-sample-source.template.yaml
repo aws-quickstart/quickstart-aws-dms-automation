@@ -50,12 +50,11 @@ Parameters:
     Type: String
   DBInstanceClass:
     AllowedValues:
-      - db.t3.medium
-      - db.t3.large
-      - db.t3.xlarge
-      - db.t3.2xlarge
+      - db.r5.large
+      - db.r5.xlarge
+      - db.r5.2xlarge
     ConstraintDescription: "Must select a valid database instance type."
-    Default: db.t3.large
+    Default: db.r5.large
     Description: "The name of the compute and memory capacity class of the database instance."
     Type: String
   DBMasterUserPassword:

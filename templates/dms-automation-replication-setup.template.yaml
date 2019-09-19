@@ -118,7 +118,7 @@ Parameters:
       - dms.c4.xlarge
       - dms.c4.2xlarge
       - dms.c4.4xlarge
-    Default: dms.t2.micro
+    Default: dms.c4.large
     Description: DMS replication instance type
     Type: String
   MultiAz:

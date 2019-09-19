@@ -228,7 +228,7 @@ Mappings:
         #   - 2.4.5
         #   - 2.4.4
         #   - 2.4.3
-      InstanceType: dms.t2.micro
+      InstanceType: dms.c4.large
         # AllowedValues:
         #   - dms.t2.micro
         #   - dms.t2.small
@@ -255,7 +255,7 @@ Mappings:
     SampleSourceParameters:
       DBBackupRetentionPeriod: "7"
         # "The number of days for which automatic database snapshots are retained."
-      DBInstanceClass: db.t3.medium
+      DBInstanceClass: db.r5.large
         # "The name of the compute and memory capacity class of the database instance."
       DBMasterUsername: master
         # "The database admin account username."
