@@ -53,6 +53,15 @@ Parameters:
       - db.r5.large
       - db.r5.xlarge
       - db.r5.2xlarge
+      - db.r5.4xlarge
+      - db.r5.12xlarge
+      - db.r5.24xlarge
+      - db.r4.large
+      - db.r4.xlarge
+      - db.r4.2xlarge
+      - db.r4.4xlarge
+      - db.r4.8xlarge
+      - db.r4.16xlarge
     ConstraintDescription: "Must select a valid database instance type."
     Default: db.r5.large
     Description: "The name of the compute and memory capacity class of the database instance."
@@ -63,7 +72,6 @@ Parameters:
     Description: "The database admin account password."
     MaxLength: "64"
     MinLength: "8"
-    Default: Passw0rd!
     NoEcho: "True"
     Type: String
   DBMasterUsername:

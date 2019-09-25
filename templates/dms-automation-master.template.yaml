@@ -1,13 +1,130 @@
 AWSTemplateFormatVersion: 2010-09-09
+Metadata:
+  AWS::CloudFormation::Interface:
+    #Parameter Groups
+    ParameterGroups:
+    - Label:
+        default: Migration Setup
+      Parameters:
+      - pCreateSample
+      - CreateNewReplicationInstance
+      - pMigNotify
+      - pFullLoadOnly
+      - pTaskName
+      - pS3BucketKey
+      - pS3BucketName
+    - Label: 
+        default: DMS Configurattion for New Endpoints and Replication Instance
+      Parameters:
+      - SourceDBName
+      - SourceEngine
+      - SourcePassword
+      - SourcePort
+      - SourceEndpointServer
+      - SourceUser
+      - TargetDBName
+      - TargetEngine
+      - TargetPassword
+      - TargetPort
+      - TargetEndpointServer
+      - TargetUser
+    - Label: 
+        default: DMS Configuration for Existing Endpoints and Replication Instance
+      Parameters:
+      - pDmsSourceArn
+      - pDmsTargetArn
+      - pDmsReplicationArn
+    - Label: 
+        default: Network Configuration
+      Parameters:
+      - CreateVpc
+      - AvailabilityZones
+      - KeyPairName
+      - RemoteAccessCIDR
+      - EnableBastion
+      - pCodeBuildSecurityGroup
+      - pCodeBuildSubnet
+      - pCodeBuildVPC
+    - Label: 
+        default: AWS Quick Start configuration 
+      Parameters:
+      - QSS3BucketName
+      - QSS3KeyPrefix
+      
+    # Parameter Labels
+    ParameterLabels:
+      pFullLoadOnly:
+        default: Full Load Only?
+      pCreateSample:
+        default: Create Sample?
+      pMigNotify:
+        default: Notification Email
+      pCodeBuildSecurityGroup:
+        default: Security Group ID
+      pCodeBuildSubnet:
+        default: Private Subnet ID
+      pCodeBuildVPC:
+        default: VPC ID
+      pS3BucketKey:
+        default: Migration S3 Bucket
+      pS3BucketName:
+        default: Migration S3 Key
+      pTaskName:
+        default: Task Name
+      pDmsSourceArn:
+        default: DMS Source Endpoint Arn
+      pDmsTargetArn:
+        default: DMS Target Endpoint Arn
+      pDmsReplicationArn:
+        default: DMS Replication Instance Endpoint Arn
+      CreateNewReplicationInstance:
+        default: Create New Replication Instance?
+      SourceDBName:
+        default: Source DB Name
+      SourceEngine:
+        default: Source DB Engine
+      SourcePassword:
+        default: Source DB Password
+      SourcePort:
+        default: Source DB Port
+      SourceEndpointServer:
+        default: Source DB Server
+      SourceUser:
+        default: Source User
+      TargetDBName:
+        default: Target DB Name
+      TargetEngine:
+        default: Target DB Engine
+      TargetPassword:
+        default: Target DB Password
+      TargetPort:
+        default: Target DB Port
+      TargetEndpointServer:
+        default: Target DB Server
+      TargetUser:
+        default: Target DB User
+      AvailabilityZones:
+        default: Availanility Zones
+      KeyPairName:
+        default: Key Pair Name
+      RemoteAccessCIDR:
+        default: Remote Access CIDR
+      EnableBastion:
+        default: Enable Bastion?
+      QSS3BucketName:
+        default: Quickstart S3 Bucket Name
+      QSS3KeyPrefix:
+        default: Quickstart S3 Prefix
+      CreateVpc:
+        default: Create VPC?
 Parameters:
-  # from codepipeline stack - 20 parameters
   pCreateSample:
     Type: String
     Description: Please choose this option if you want to populate source database
     AllowedValues:
       - 'yes'
       - 'no'
-    Default: 'no'
+    Default: 'yes'
   pFullLoadOnly:
     Type: String
     Description: This is for task to do only full loads and not CDC
@@ -24,75 +141,48 @@ Parameters:
       RDS endpoint
   pCodeBuildSubnet:
     Type: String
-    Description: Private subnet id with NAT gateway where codebuild will be launched
+    Description: Private subnet ID with NAT gateway where codebuild will be launched
   pCodeBuildVPC:
     Type: String
-    Description: VPC Id where codebuild will be launched. Subnet and security group should
+    Description: VPC ID where codebuild will be launched. Subnet and security group should
       belong to this VPC.
   pS3BucketKey:
     Type: String
-    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
-    Description: The location of file which is used as source for CodePipeline
+    Description : >- 
+      (optional) The location of file which is used as source for CodePipeline.
+      If you choose to create a sample leave this empty.
   pS3BucketName:
     Type: String
-    AllowedPattern: '^[a-zA-Z0-9-\-_.]{3,63}'
-    Description: The name of the S3 bucket where the code resides. This will be used as
-      source for the CodePipeline
-  pRDSEndpoint:
-    Type: String
-    Description: RDS endpoint where the schema changes will take place
-  pRDSName:
-    Type: String
-    Description: RDS database name for deployments
-  pRDSPassword:
-    Type: String
-    Description: The database user password for deployment
-    NoEcho: 'true'
-  pRDSUser:
-    Type: String
-    Description: RDS database user name
-  pSourceRDSEndpoint:
-    Type: String
-    Description: RDS endpoint where the schema changes will take place
-  pSourceRDSName:
-    Type: String
-    Description: RDS database name for deployments
-  pSourceRDSPassword:
-    Type: String
-    Description: The database user password for deployment
-    NoEcho: 'true'
-  pSourceRDSUser:
-    Type: String
-    Description: RDS database user name
+    Description: >- 
+      (optional) The name of the S3 bucket where the code resides. 
+      If you choose to create a sample leave this empty.
   pTaskName:
     Type: String
-
-    Description: Name of DMS task
+    Description: Name of DMS task. If left empty, stack name will be used.
   pDmsSourceArn:
     Type: String
     Description: Arn of source endpoint which was successfully tested with replication
       instance
   pDmsTargetArn:
     Type: String
-    Description: Arn of source endpoint which was successfully tested with replication
+    Description: Arn of target endpoint which was successfully tested with replication
       instance
   pDmsReplicationArn:
     Type: String
     Description: Arn of replication instance used for migration
-
-  # from replication isntance setup stack - 16 parameters
   CreateNewReplicationInstance:
     Type: String
+    Default: 'yes'
     AllowedValues:
       - 'yes'
       - 'no'
     Description: Please specify if you want to create new replication instance
   SourceDBName:
     Type: String
-    Description: Name of the database in source server
+    Description: Name of the database or service name in source server. 
   SourceEngine:
     Type: String
-    Description: Database engine running on the source
+    Description: Database engine running on the source. 
     Default: oracle
     AllowedValues:
       - mysql
@@ -105,14 +195,16 @@ Parameters:
       - sqlserver
   SourcePassword:
     Type: String
-    Description: Source database password
+    Description: Source database password. 
     NoEcho: 'true'
   SourcePort:
     Type: String
     Description: Port on which the source database is running
+    Default: '1521'
   SourceEndpointServer:
     Type: String
-    Description: Source database hostname, endpoint URL or IP address
+    Description: (optional) Source database hostname, endpoint URL or IP address.
+      Leave empty if creating a sample is 'yes'.
   SourceUser:
     Type: String
     Description: Source database user name
@@ -141,36 +233,11 @@ Parameters:
     Description: Port on which the target database is running
   TargetEndpointServer:
     Type: String
-    Description: Target database hostname, endpoint URL or IP address
+    Description: (optional) Target database hostname, endpoint URL or IP address.
+      Leave empty if creating a sample is 'yes'.
   TargetUser:
     Type: String
     Description: Target database user name
-  LayerBucket:
-    Type: String
-    Description: S3 bucket of the packaged zip file eampole (test-bucket-1234)
-  LayerKey:
-    Type: String
-    Description: S3 location of the packaged zip file example (folder/sub-folder/test.zip)
-
-  # for sample setup - 2 Parameters
-  SourceDBMasterUserPassword:
-    AllowedPattern: "(?=^.{6,255}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*"
-    ConstraintDescription: "Min 8 chars. Must include 1 uppercase, 1 lowercase, 1 number, 1 (non / @ \" ') symbol"
-    Description: "Source database admin account password."
-    MaxLength: "64"
-    MinLength: "8"
-    NoEcho: "True"
-    Type: String
-  TargetDBMasterUserPassword:
-    AllowedPattern: "(?=^.{6,255}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*"
-    ConstraintDescription: "Min 8 chars. Must include 1 uppercase, 1 lowercase, 1 number, 1 (non / @ \" ') symbol"
-    Description: "Target database admin account password."
-    MaxLength: "64"
-    MinLength: "8"
-    NoEcho: "True"
-    Type: String
-
-  # for VPC stack - 4 parameters
   AvailabilityZones:
    Description: >-
       List of Availability Zones to use for the subnets in the VPC. Only two
@@ -194,8 +261,6 @@ Parameters:
     Default: "true"
     Description: "If true, a bastion stack will be created."
     Type: String
-
-  # for quickstart - 2 parameters
   QSS3BucketName:
     AllowedPattern: "^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$"
     ConstraintDescription: "Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-)."
@@ -208,8 +273,6 @@ Parameters:
     Default: quickstart-aws-dms-automation/
     Description: "S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/)."
     Type: String
-
-  # conditional creation of VPC, makes 4 new parameters
   CreateVpc:
     AllowedValues:
       - "true"
@@ -257,82 +320,56 @@ Mappings:
         # "The number of days for which automatic database snapshots are retained."
       DBInstanceClass: db.r5.large
         # "The name of the compute and memory capacity class of the database instance."
-      DBMasterUsername: master
-        # "The database admin account username."
-
-      DBPort: '1521'
-        # "The port the instance will listen for connections on."
-      DBAccessCIDR: 10.0.0.0/16
-         # "Allowed CIDR block for external access (use VPC CIDR)."
-
-      DBName: 'ORCL'
-        # "Name of the Amazon Aurora database."
-
+      
     TargetParameters:
-        DBAllocatedStorageEncrypted: false
-          # Whether or not to encrypt the database.
-          # AllowedValues:
-          #   - true
-          #   - false
-
-
-        DBAutoMinorVersionUpgrade: "false"
-          # AllowedValues:
-          #   - "true"
-          #   - "false"
-          # "Select true to set up auto minor version upgrade."
-
-        DBBackupRetentionPeriod: "35"
-          # "The number of days for which automatic database snapshots are retained."
-
-        DBEngineVersion: 10.7
-          # Select Database Engine Version
-          # AllowedValues:
-          #   - 9.6.9
-          #   - 9.6.11
-          #   - 9.6.12
-          #   - 10.5
-          #   - 10.6
-          #   - 10.7
-        DBInstanceClass: db.r5.large
-          # "The name of the compute and memory capacity class of the database instance."
-        DBMasterUserPassword: Passw0rd1!
-          # "The database admin account password."
-
-        DBMasterUsername: pgadmin
-           # "The database admin account username."
-        DBPort: 5432
-           # "The port the instance will listen for connections on."
-
-        DBMultiAZ: "false"
-          # AllowedValues:
-          #   - "true"
-          #   - "false"
-          # "Specifies if the database instance is a multiple Availability Zone deployment."
-
-        DBName: 'AuroraPostgresDB'
-          # "Name of the Amazon Aurora database."
-
-        EnableEventSubscription: "true"
-          # AllowedValues:
-          #   - "true"
-          #   - "false"
-          # "Enables event subscription to Notification List"
-        NotificationList: 'db-ops@domain.com'
-          # The Email notification is used to configure a SNS topic for sending cloudwatch alarm and RDS Event notifications
+      DBAllocatedStorageEncrypted: false
+        # Whether or not to encrypt the database.
+        # AllowedValues:
+        #   - true
+        #   - false
+      DBAutoMinorVersionUpgrade: "false"
+        # AllowedValues:
+        #   - "true"
+        #   - "false"
+        # "Select true to set up auto minor version upgrade."
+      DBBackupRetentionPeriod: "35"
+        # "The number of days for which automatic database snapshots are retained."
+      DBEngineVersion: 10.7
+        # Select Database Engine Version
+        # AllowedValues:
+        #   - 9.6.9
+        #   - 9.6.11
+        #   - 9.6.12
+        #   - 10.5
+        #   - 10.6
+        #   - 10.7
+      DBInstanceClass: db.r5.large
+        # "The name of the compute and memory capacity class of the database instance."
+      DBMasterUsername: pgadmin
+          # "The database admin account username."
+      DBPort: 5432
+          # "The port the instance will listen for connections on."
+      DBMultiAZ: "false"
+        # AllowedValues:
+        #   - "true"
+        #   - "false"
+        # "Specifies if the database instance is a multiple Availability Zone deployment."
+      DBName: 'AuroraPostgresDB'
+        # "Name of the Amazon Aurora database."
+      EnableEventSubscription: "true"
+        # AllowedValues:
+        #   - "true"
+        #   - "false"
+        # "Enables event subscription to Notification List"
     VpcParameters:
       PrivateSubnet1CIDR: 10.0.0.0/19
         # CIDR block for private subnet 1 located in Availability Zone 1.
-
       PrivateSubnet2CIDR: 10.0.32.0/19
         # CIDR block for private subnet 2 located in Availability Zone 2.
-
       PublicSubnet1CIDR: 10.0.128.0/20
         # CIDR block for the public subnet 1 located in Availability Zone 1.
-
       PublicSubnet2CIDR: 10.0.144.0/20
         # CIDR block for the public subnet 2 located in Availability Zone 2.
-
       VPCCIDR: 10.0.0.0/16
         # CIDR block for the VPC.
       VpcId: ''
@@ -398,24 +435,11 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/aurora_postgres.template.yaml
-
       Parameters:
         Subnet1ID: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
         Subnet2ID: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
         VPCID: !GetAtt VPCStack.Outputs.VPCID
-        DBName: !FindInMap [TemplateParameters, TargetParameters, DBName]
-        DBAutoMinorVersionUpgrade: !FindInMap [TemplateParameters, TargetParameters, DBAutoMinorVersionUpgrade]
-        DBAllocatedStorageEncrypted: !FindInMap [TemplateParameters, TargetParameters, DBAllocatedStorageEncrypted]
-        DBBackupRetentionPeriod: !FindInMap [TemplateParameters, TargetParameters, DBBackupRetentionPeriod]
-        DBEngineVersion: !FindInMap [TemplateParameters, TargetParameters, DBEngineVersion]
-        DBInstanceClass: !FindInMap [TemplateParameters, TargetParameters, DBInstanceClass]
-        DBMasterUsername: !FindInMap [TemplateParameters, TargetParameters, DBMasterUsername]
-        DBMasterUserPassword: !Ref TargetDBMasterUserPassword
-        DBPort: !FindInMap [TemplateParameters, TargetParameters, DBPort]
-        DBMultiAZ: !FindInMap [TemplateParameters, TargetParameters, DBMultiAZ]
-        DBAccessCIDR: !FindInMap [TemplateParameters, VpcParameters, VPCCIDR]
-        EnableEventSubscription: !FindInMap [TemplateParameters, TargetParameters, EnableEventSubscription]
-        NotificationList: !FindInMap [TemplateParameters, TargetParameters, NotificationList]
+        NotificationList: !Ref pMigNotify
 
   DMSCodePiplineStack:
     DependsOn:
@@ -436,21 +460,21 @@ Resources:
             - CreateSample 
             - !Sub ${QSS3KeyPrefix}/scripts/test.zip
             - !Ref pS3BucketKey
-        pRDSEndpoint: !If [CreateSample, !GetAtt AuroraStack.Outputs.RDSEndPointAddress, !Ref pRDSEndpoint]
-        pRDSName:  !If [CreateSample, !FindInMap [TemplateParameters, TargetParameters, DBName] , !Ref pRDSName]
-        pRDSUser: !If [CreateSample, !FindInMap [TemplateParameters, TargetParameters, DBMasterUsername] , !Ref pRDSUser]
-        pRDSPassword: !If [CreateSample, !Ref TargetDBMasterUserPassword , !Ref pRDSPassword]
+        pRDSEndpoint: !If [CreateSample, !GetAtt AuroraStack.Outputs.RDSEndPointAddress, !Ref TargetEndpointServer]
+        pRDSName:  !If [CreateSample, !FindInMap [TemplateParameters, TargetParameters, DBName] , !Ref TargetDBName]
+        pRDSUser: !If [CreateSample, !FindInMap [TemplateParameters, TargetParameters, DBMasterUsername] , !Ref TargetUser]
+        pRDSPassword: !If [CreateSample, !FindInMap [TemplateParameters, TargetParameters, DBMasterUserPassword] , !Ref TargetPassword]
         pDmsSourceArn: !If [CreateSample, !GetAtt DMSReplicationStack.Outputs.SourceEndpointArn, !Ref pDmsSourceArn]
         pDmsTargetArn: !If [CreateSample, !GetAtt DMSReplicationStack.Outputs.TargetEndpointArn, !Ref pDmsTargetArn]
         pDmsReplicationArn: !If [CreateSample, !GetAtt DMSReplicationStack.Outputs.ReplicationInstanceArn, !Ref pDmsReplicationArn]
         pCreateSample: !Ref pCreateSample
         pFullLoadOnly: !Ref pFullLoadOnly
-        pSourceRDSEndpoint: !If [CreateSample, !GetAtt DMSSampleSourceSetup.Outputs.SampleSourceEndpoint, !Ref pSourceRDSEndpoint]
-        pSourceRDSName: !If [CreateSample, !FindInMap [TemplateParameters, SampleSourceParameters, DBName] , !Ref pSourceRDSName]
-        pSourceRDSPassword: !Ref SourceDBMasterUserPassword
-        pSourceRDSUser: !If [CreateSample, !FindInMap [TemplateParameters, SampleSourceParameters, DBMasterUsername] , !Ref pSourceRDSUser]
-        pLambdaLayerKey: !Ref LayerKey
-        pLambdaLayerBucket: !Ref LayerBucket
+        pSourceRDSEndpoint: !If [CreateSample, !GetAtt DMSSampleSourceSetup.Outputs.SampleSourceEndpoint, !Ref 'AWS::NoValue']
+        pSourceRDSName: !Ref SourceDBName
+        pSourceRDSPassword: !FindInMap [TemplateParameters, SampleSourceParameters, DBPassword]
+        pSourceRDSUser: !If [CreateSample, !FindInMap [TemplateParameters, SampleSourceParameters, DBMasterUsername] , !Ref 'AWS::NoValue']
+        pLambdaLayerKey: !Sub ${QSS3KeyPrefix}/scripts/boto3.zip
+        pLambdaLayerBucket: !Ref S3Bucket
 
 
 
@@ -463,13 +487,15 @@ Resources:
         VPCID: !GetAtt VPCStack.Outputs.VPCID
         Subnet1ID: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
         Subnet2ID: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
-        DBName: !FindInMap [TemplateParameters, SampleSourceParameters, DBName]
+        DBName: !Ref SourceDBName
         DBBackupRetentionPeriod: !FindInMap [TemplateParameters, SampleSourceParameters, DBBackupRetentionPeriod]
         DBInstanceClass: !FindInMap [TemplateParameters, SampleSourceParameters, DBInstanceClass]
         DBMasterUsername: !FindInMap [TemplateParameters, SampleSourceParameters, DBMasterUsername]
-        DBMasterUserPassword: !Ref SourceDBMasterUserPassword
-        DBPort: !FindInMap [TemplateParameters, SampleSourceParameters, DBPort]
+        DBMasterUserPassword: !Ref SourcePassword
+        DBPort: !Ref SourcePort
         DBAccessCIDR: !FindInMap [TemplateParameters, VpcParameters, VPCCIDR]
+
+
   DMSReplicationStack:
     Condition: CreateReplicationInst
     Type: 'AWS::CloudFormation::Stack'
@@ -480,22 +506,22 @@ Resources:
         LayerKey:  !Sub ${QSS3KeyPrefix}/scripts/boto3.zip
         CreateNewReplicationInstance: !If [CreateSample, 'yes', !Ref CreateNewReplicationInstance]
         ReplInstanceArn: !Ref pDmsReplicationArn
-        PrivateSubnet1: !If [CreateSample, !GetAtt VPCStack.Outputs.PrivateSubnet1AID, !FindInMap [TemplateParameters, ReplicationInstanceParameters, PrivateSubnet1]]
-        PrivateSubnet2: !If [CreateSample, !GetAtt VPCStack.Outputs.PrivateSubnet2AID, !FindInMap [TemplateParameters, ReplicationInstanceParameters, PrivateSubnet2]]
+        PrivateSubnet1: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet1AID, !FindInMap [TemplateParameters, ReplicationInstanceParameters, PrivateSubnet1]]
+        PrivateSubnet2: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet2AID, !FindInMap [TemplateParameters, ReplicationInstanceParameters, PrivateSubnet2]]
         SecurityGroup: !If [CreateSample, !GetAtt DMSSampleSourceSetup.Outputs.SampleSecurityGroup, !FindInMap [TemplateParameters, ReplicationInstanceParameters, SecurityGroup]]
         InstanceType: !FindInMap [TemplateParameters, ReplicationInstanceParameters, InstanceType]
         EngineVersion: !FindInMap [TemplateParameters, ReplicationInstanceParameters, EngineVersion]
         PublicAccess: !FindInMap [TemplateParameters, ReplicationInstanceParameters, PublicAccess]
         MultiAz: !FindInMap [TemplateParameters, ReplicationInstanceParameters, MultiAz]
-        SourceDBName: !If [CreateSample, !FindInMap [TemplateParameters, SampleSourceParameters, DBName] , !Ref SourceDBName]
+        SourceDBName: !Ref SourceDBName
         SourceEngine: !If [CreateSample, 'oracle' , !Ref SourceEngine]
-        SourcePassword: !If [CreateSample, !Ref SourceDBMasterUserPassword, !Ref SourcePassword]
-        SourcePort: !If [CreateSample, !FindInMap [TemplateParameters, SampleSourceParameters, DBPort], !Ref SourcePort]
+        SourcePassword: !Ref SourcePassword
+        SourcePort: !Ref SourcePort
         SourceEndpointServer: !If [CreateSample, !GetAtt DMSSampleSourceSetup.Outputs.SampleSourceEndpoint, !Ref SourceEndpointServer]
-        SourceUser: !If [CreateSample, !FindInMap [TemplateParameters, SampleSourceParameters, DBMasterUsername], !Ref SourceUser]
+        SourceUser: !Ref SourceUser
         TargetDBName: !If [CreateSample, !FindInMap [TemplateParameters, TargetParameters, DBName] , !Ref TargetDBName]
         TargetEngine: !If [CreateSample, 'aurora-postgresql' , !Ref TargetEngine]
-        TargetPassword: !If [CreateSample, !Ref TargetDBMasterUserPassword, !Ref TargetPassword]
+        TargetPassword: !If [CreateSample, !FindInMap [TemplateParameters, TargetParameters, DBMasterUserPassword], !Ref TargetPassword]
         TargetPort: !If [CreateSample, !FindInMap [TemplateParameters, TargetParameters, DBPort], !Ref TargetPort]
         TargetEndpointServer: !If [CreateSample, !GetAtt AuroraStack.Outputs.RDSEndPointAddress, !Ref TargetEndpointServer]
         TargetUser: !If [CreateSample, !FindInMap [TemplateParameters, TargetParameters, DBMasterUsername], !Ref TargetUser]
