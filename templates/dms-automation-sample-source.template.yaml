@@ -45,7 +45,7 @@ Metadata:
         default: Custom securiy group ID
 Parameters:
   DBBackupRetentionPeriod:
-    Default: "35"
+    Default: "7"
     Description: "The number of days for which automatic database snapshots are retained."
     Type: String
   DBInstanceClass:
@@ -132,8 +132,9 @@ Resources:
       MasterUsername: !Ref DBMasterUsername
       MasterUserPassword: !Ref DBMasterUserPassword
       Port: !Ref DBPort
-
+      StorageType: gp2
       Engine: oracle-ee
+      EngineVersion: '12.1.0.2.v17'
       PubliclyAccessible: false
       CopyTagsToSnapshot: true
       VPCSecurityGroups:

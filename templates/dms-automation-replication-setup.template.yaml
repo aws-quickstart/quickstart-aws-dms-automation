@@ -364,7 +364,7 @@ Resources:
                     else:
                         print('Source connection failed')
                         cfnresponse.send(event, context, cfnresponse.FAILED, {}, '')
-                else:
+                elif 'Delete' in event['RequestType']:
                     print('Delete event nothing will be done')
                     cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
               except Exception as e:
