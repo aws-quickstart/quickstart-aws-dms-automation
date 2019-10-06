@@ -1,7 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Metadata:
   AWS::CloudFormation::Interface:
-    #Parameter Groups
     ParameterGroups:
     - Label:
         default: Migration Setup
@@ -372,30 +371,6 @@ Parameters:
       - 'true'
       - 'false'
 
-# Mappings:
-#   TemplateParameters:
-#     ReplicationInstanceParameters:
-#       EngineVersion: 3.1.3
-#         # AllowedValues for Engine Version:
-#         #   - 3.1.3
-#         #   - 2.4.5
-#         #   - 2.4.4
-#         #   - 2.4.3
-#       InstanceType: dms.c4.large
-#         # AllowedValues:
-#         #   - dms.t2.micro
-#         #   - dms.t2.small
-#         #   - dms.t2.medium
-#         #   - dms.t2.large
-#         #   - dms.c4.large
-#         #   - dms.c4.xlarge
-#         #   - dms.c4.2xlarge
-#         #   - dms.c4.4xlarge
-#       MultiAz: 'false'
-#         # AllowedValues:
-#         #   - 'true'
-#         #   - 'false'
-#       PublicAccess: 'false'
       
     
 Conditions:
@@ -649,7 +624,6 @@ Resources:
             import time
             
             def lambda_handler(event, context):
-            # TODO implement
                 
                 try:
                     print('Received event: %s' % json.dumps(event, indent=2))
