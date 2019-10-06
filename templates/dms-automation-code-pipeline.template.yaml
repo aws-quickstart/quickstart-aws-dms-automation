@@ -665,7 +665,7 @@ Resources:
           task_name = os.environ['dms_task'].lower()
           topic = os.environ['notify_topic']
           def lambda_handler(event, context):
-            print(event)
+            print('Received event: %s' % json.dumps(event, indent=2))
             str_subject = event['Records'][0]['Sns']['Subject']
             if 'APPROVAL NEEDED' in str_subject:
               print('This is a Codepipeline approval action')
@@ -792,7 +792,7 @@ Resources:
              source_arn = event['ResourceProperties']['SourceArn']
              target_arn = event['ResourceProperties']['TargetArn']
              responseData = {}
-
+             print('Received event: %s' % json.dumps(event, indent=2))
              try:
                  if event['RequestType'] == 'Delete':
                      print('Nothing will be done on DeleteStack call')
@@ -945,6 +945,7 @@ Resources:
             try:
               bucketcfn=event['ResourceProperties']['DestBucket']
               responseData = {}
+              print('Received event: %s' % json.dumps(event, indent=2))
               if event['RequestType'] == 'Create':
                 print('Create stack operation nothing will be done')
                 print(bucketcfn)
@@ -1030,7 +1031,7 @@ Resources:
           dms = boto3.client('dms')
           def lambda_handler(event, context):
             task_name = event['ResourceProperties']['TaskName'].lower()
-            print(event)
+            print('Received event: %s' % json.dumps(event, indent=2))
             try:
               if event['RequestType'] == 'Delete':
                 print('Delete event. Task will be stopped and deleted')
