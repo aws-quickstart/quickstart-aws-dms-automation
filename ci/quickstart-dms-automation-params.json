@@ -1,0 +1,104 @@
+[
+  {
+    "ParameterKey": "AvailabilityZones",
+    "ParameterValue": "us-east-1a,us-east-1b"
+  },
+  {
+    "ParameterKey": "CreateVpc",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "EnableBastion",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "CreateNewReplicationInstance",
+    "ParameterValue": "yes"
+  },
+  {
+    "ParameterKey": "KeyPairName",
+    "ParameterValue": "aws_keypair"
+  },
+  {
+    "ParameterKey": "SampleDbPassword",
+    "ParameterValue": "Passw0rd!"
+  },
+  {
+    "ParameterKey": "pMigNotify",
+    "ParameterValue": "nagmeshk@amazon.com"
+  },
+  {
+    "ParameterKey": "pS3BucketName",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "pDmsTargetArn",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "pDmsReplicationArn",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "TargetUser",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "pTaskName",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "TargetEndpointServer",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "ExistingPrivateSubnet2",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "ExistingPrivateSubnet1",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "SourceEndpointServer",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "SourceDBName",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "TargetDBName",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "SourceUser",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "pS3BucketKey",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "ExistingVpc",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "ExistingSecurityGroupId",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "SourcePassword",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "TargetPassword",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "pDmsSourceArn",
+    "ParameterValue": ""
+  }
+  
+
+]
