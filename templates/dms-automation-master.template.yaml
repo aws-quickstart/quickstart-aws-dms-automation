@@ -10,8 +10,6 @@ Metadata:
       - pMigNotify
       - pFullLoadOnly
       - pTaskName
-      - pS3BucketKey
-      - pS3BucketName
       - DBInstanceClass
       - SampleDbPassword
     - Label:
@@ -88,10 +86,6 @@ Metadata:
         default: Existing Private Subnet ID 2
       ExistingVpc:
         default: Existing VPC ID
-      pS3BucketKey:
-        default: Migration S3 Bucket
-      pS3BucketName:
-        default: Migration S3 Key
       pTaskName:
         default: Task Name
       pDmsSourceArn:
@@ -186,43 +180,39 @@ Parameters:
     Description: This email will get notifications on Migration Status
   ExistingSecurityGroupId:
     Type: String
-    Description:  Existing Security group used by the framework. Please ensure that this has access to
-      RDS endpoint and DMS replication instance 
+    Description:  Existing Security group used by the framework. Please ensure that this has access to RDS endpoint and DMS replication instance
+    Default: '' 
   ExistingPrivateSubnet1:
     Type: String
     Description: Private subnet ID 1 with NAT gateway
+    Default: ''
   ExistingPrivateSubnet2:
     Type: String
     Description: Private subnet ID 2 with NAT gateway
-  
+    Default: ''
   ExistingVpc:
     Type: String
     Description: Existing VPC ID. Subnet and security group should
       belong to this VPC.
-  pS3BucketKey:
-    Type: String
-    Description : >- 
-      (optional) The location of file which is used as source for CodePipeline.
-      If you choose to create a sample leave this empty.
-  pS3BucketName:
-    Type: String
-    Description: >- 
-      (optional) The name of the S3 bucket where the code resides. 
-      If you choose to create a sample leave this empty.
+    Default: ''
   pTaskName:
     Type: String
     Description: Name of DMS task. If left empty, stack name will be used.
+    Default: ''
   pDmsSourceArn:
     Type: String
     Description: Arn of source endpoint which was successfully tested with replication
       instance
+    Default: ''
   pDmsTargetArn:
     Type: String
     Description: Arn of target endpoint which was successfully tested with replication
       instance
+    Default: ''
   pDmsReplicationArn:
     Type: String
     Description: Arn of replication instance used for migration
+    Default: ''
   CreateNewReplicationInstance:
     Type: String
     Default: 'yes'
@@ -233,6 +223,7 @@ Parameters:
   SourceDBName:
     Type: String
     Description: Name of the database or service name in source server. 
+    Default: ''
   SourceEngine:
     Type: String
     Description: Database engine running on the source. 
@@ -250,6 +241,7 @@ Parameters:
     Type: String
     Description: Source database password. 
     NoEcho: 'true'
+    Default: ''
   SourcePort:
     Type: String
     Description: Port on which the source database is running
@@ -258,12 +250,15 @@ Parameters:
     Type: String
     Description: (optional) Source database hostname, endpoint URL or IP address.
       Leave empty if creating a sample is 'yes'.
+    Default: ''
   SourceUser:
     Type: String
     Description: Source database user name
+    Default: ''
   TargetDBName:
     Type: String
     Description: Name of the database in target server
+    Default: ''
   TargetEngine:
     Type: String
     Description: Database engine running on the target
@@ -281,6 +276,7 @@ Parameters:
     Type: String
     Description: Target database password
     NoEcho: 'true'
+    Default: ''
   TargetPort:
     Type: String
     Description: Port on which the target database is running
@@ -289,9 +285,11 @@ Parameters:
     Type: String
     Description: (optional) Target database hostname, endpoint URL or IP address.
       Leave empty if creating a sample is 'yes'.
+    Default: ''
   TargetUser:
     Type: String
     Description: Target database user name
+    Default: ''
   AvailabilityZones:
    Description: >-
       List of Availability Zones to use for the subnets in the VPC. Only two
@@ -312,7 +310,7 @@ Parameters:
     AllowedValues:
       - "true"
       - "false"
-    Default: "true"
+    Default: "false"
     Description: "If true, a bastion stack will be created."
     Type: String
   QSS3BucketName:
@@ -327,6 +325,13 @@ Parameters:
     Default: quickstart-aws-dms-automation/
     Description: "S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/)."
     Type: String
+  # 498
+  # change defaults
+  # bastion to false
+  # dyanmic availability zone
+  # remove bucket name /prefix to quickstart bucket name
+  # pass 1 test
+
   CreateVpc:
     AllowedValues:
       - "true"
@@ -377,7 +382,7 @@ Conditions:
   CreateNewVpc: 
     !Or [!Equals [!Ref CreateVpc, 'true'], Condition: CreateSample]
   CreateBastion: 
-    !Or [!Equals [!Ref EnableBastion, 'true'], Condition: CreateSample]
+    !Equals [!Ref EnableBastion, 'true']
   CreateSample: !Equals
     - !Ref pCreateSample
     - 'yes'
@@ -487,12 +492,12 @@ Resources:
         pCodeBuildVPC: !If [CreateSample, !GetAtt VPCStack.Outputs.VPCID, !Ref ExistingVpc]
         pCodeBuildSubnet: !If [CreateSample, !GetAtt VPCStack.Outputs.PrivateSubnet1AID, !Ref ExistingPrivateSubnet1]
         pCodeBuildSecurityGroup: !If [CreateSample, !GetAtt DMSSampleSourceSetup.Outputs.SampleSecurityGroup, !Ref ExistingSecurityGroupId]
-        pS3BucketName: !Ref S3Bucket
+        pS3BucketName: !Ref QSS3BucketName
         pS3BucketKey: 
           !If 
             - CreateSample 
             - !Sub ${QSS3KeyPrefix}scripts/test.zip
-            - !Ref pS3BucketKey
+            - !Ref QSS3KeyPrefix
         pRDSEndpoint: !If [CreateSample, !GetAtt AuroraStack.Outputs.RDSEndPointAddress, !Ref TargetEndpointServer]
         pRDSName: !If [CreateSample, 'AuroraPostgresDB' , !Ref TargetDBName]
         pRDSUser: !If [CreateSample, 'pgadmin' , !Ref TargetUser]
