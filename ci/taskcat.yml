@@ -1,6 +1,6 @@
 global:
   marketplace-ami: false
-  owner: quickstart-eng@amazon.com
+  owner: nagmeshk@amazon.com
   qsname: quickstart-aws-dms-automation
   regions:
     - ap-northeast-1
@@ -20,8 +20,5 @@ global:
  
 tests:
   quickstart-aws-dms-automationt1:
-    parameter_input: quickstart-aws-dms-automation-example-params1.json
-    template_file: quickstart-aws-dms-automation-example1.template
-  quickstart-aws-dms-automationt2:
-    parameter_input: quickstart-aws-dms-automation-example-params2.json
-    template_file: quickstart-aws-dms-automation-example2.template
+    parameter_input: quickstart-dms-automation-params.json
+    template_file: dms-automation-master.template.yaml
