@@ -118,7 +118,7 @@ Parameters:
       - dms.c4.xlarge
       - dms.c4.2xlarge
       - dms.c4.4xlarge
-    Default: dms.t2.micro
+    Default: dms.c4.large
     Description: DMS replication instance type
     Type: String
   MultiAz:
@@ -343,11 +343,12 @@ Resources:
           import boto3
 
           def lambda_handler(event, context):
+              print('Received event: %s' % json.dumps(event, indent=2))
               source_endpoint = event['ResourceProperties']['SourceArn']
               target_endpoint = event['ResourceProperties']['TargetArn']
               replication_inst = event['ResourceProperties']['ReplicationInstanceArn']
               try:
-                if 'Create' or 'Update' in event['RequestType']:
+                if (event['RequestType'] == 'Create') or (event['RequestType'] == 'Update'):
                     print ('This is a %s event' %(event['RequestType']))
                     print('Checking connection for Source .....')
                     source_result = check_connection(source_endpoint,replication_inst)
@@ -364,7 +365,7 @@ Resources:
                     else:
                         print('Source connection failed')
                         cfnresponse.send(event, context, cfnresponse.FAILED, {}, '')
-                else:
+                elif event['RequestType'] == 'Delete':
                     print('Delete event nothing will be done')
                     cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
               except Exception as e:

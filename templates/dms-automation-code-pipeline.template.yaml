@@ -665,7 +665,7 @@ Resources:
           task_name = os.environ['dms_task'].lower()
           topic = os.environ['notify_topic']
           def lambda_handler(event, context):
-            print(event)
+            print('Received event: %s' % json.dumps(event, indent=2))
             str_subject = event['Records'][0]['Sns']['Subject']
             if 'APPROVAL NEEDED' in str_subject:
               print('This is a Codepipeline approval action')
@@ -792,7 +792,7 @@ Resources:
              source_arn = event['ResourceProperties']['SourceArn']
              target_arn = event['ResourceProperties']['TargetArn']
              responseData = {}
-
+             print('Received event: %s' % json.dumps(event, indent=2))
              try:
                  if event['RequestType'] == 'Delete':
                      print('Nothing will be done on DeleteStack call')
@@ -886,6 +886,9 @@ Resources:
         - !Ref rSnsApproval
   ArtifactStoreCleanUp:
     Type: 'Custom::S3CleanUp'
+    DependsOn:
+      - S3CleanUpRole
+      - S3CleanUpFunction
     Properties:
       DestBucket: !Ref rArtifactStoreS3Location
       ServiceToken: !GetAtt
@@ -921,6 +924,7 @@ Resources:
             Version: 2012-10-17
           PolicyName: !Sub '${AWS::StackName}-${AWS::Region}-S3CleanupPolicy'
       RoleName: !Sub '${AWS::StackName}-${AWS::Region}-S3CleanupRole'
+  
   S3CleanUpFunction:
     Type: 'AWS::Lambda::Function'
     Properties:
@@ -941,6 +945,7 @@ Resources:
             try:
               bucketcfn=event['ResourceProperties']['DestBucket']
               responseData = {}
+              print('Received event: %s' % json.dumps(event, indent=2))
               if event['RequestType'] == 'Create':
                 print('Create stack operation nothing will be done')
                 print(bucketcfn)
@@ -991,9 +996,13 @@ Resources:
         S3Bucket: !Ref pLambdaLayerBucket
         S3Key: !Ref pLambdaLayerKey
       Description: Latest boto3 layer for DMS wait handler
+  
   DmsCleanupResource:
     Condition: cCreateSource
     Type: 'Custom::DmsCleanupResource'
+    DependsOn:
+      - DmsCleanupFunction
+      - DmsTaskCleanupRole
     Properties:
       ServiceToken: !GetAtt
         - DmsCleanupFunction
@@ -1018,15 +1027,13 @@ Resources:
           import cfnresponse
           import json
           import boto3
-          import time
-
+          
           dms = boto3.client('dms')
           def lambda_handler(event, context):
             task_name = event['ResourceProperties']['TaskName'].lower()
-            print(event)
+            print('Received event: %s' % json.dumps(event, indent=2))
             try:
               if event['RequestType'] == 'Delete':
-                time.sleep(5)
                 print('Delete event. Task will be stopped and deleted')
                 print('The task name is %s' %(task_name))
                 task_des = dms.describe_replication_tasks(Filters=[{'Name': 'replication-task-id','Values':[task_name]}])
@@ -1042,13 +1049,11 @@ Resources:
                 cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
                 
               else:
-                time.sleep(5)
                 print ('This is a %s event. Nothing will be done' %(event['RequestType']))
                 print ('Task name is %s' %(task_name))
                 cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
             except Exception as e:
               print(e)
-              time.sleep(5)
               cfnresponse.send(event, context, cfnresponse.FAILED, {}, '')
 
 
