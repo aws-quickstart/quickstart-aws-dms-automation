@@ -74,8 +74,6 @@ Metadata:
         default: RDS Endpoint
       pRDSName:
         default: Database Name
-      pSourceRDSUser:
-        default: Source Database Username
       pSourceRDSPassword:
         default: Source Database Password
       pSourceRDSEndpoint:
