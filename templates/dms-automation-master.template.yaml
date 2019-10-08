@@ -446,9 +446,9 @@ Resources:
       SecurityGroupEgress:
         -
           CidrIp: 0.0.0.0/0
-          FromPort: -1
+          FromPort: '-1'
           IpProtocol: '-1'
-          ToPort: -1
+          ToPort: '-1'
       SecurityGroupIngress:
         -
           CidrIp: !Ref RemoteAccessCIDR
@@ -635,7 +635,7 @@ Resources:
     Condition: CreateSample
     Properties:
       Code:
-        ZipFile: !Sub
+        ZipFile: 
             |
             import cfnresponse
             import boto3
@@ -676,4 +676,4 @@ Resources:
         - Arn
       Runtime: python3.7
       Handler: index.lambda_handler
-      Timeout: '600'
+      Timeout: 600
