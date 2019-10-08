@@ -13,11 +13,7 @@
   },
   {
     "ParameterKey": "QSS3BucketName",
-    "ParameterValue": "aws-quickstart"
-  },
-  {
-    "ParameterKey": "QSS3KeyPrefix",
-    "ParameterValue": "quickstart-aws-dms-automation/"
+    "ParameterValue": "$[taskcat_autobucket]"
   },
   {
     "ParameterKey": "pMigNotify",

@@ -613,6 +613,8 @@ Resources:
                 Resource: 
                   - !Sub 'arn:${AWS::Partition}:s3:::${S3Bucket}'
                   - !Sub 'arn:${AWS::Partition}:s3:::${S3Bucket}/*'
+                  - !Sub 'arn:${AWS::Partition}:s3:::${QSS3BucketName}'
+                  - !Sub 'arn:${AWS::Partition}:s3:::${QSS3BucketName}/*'
 
   CopyFiles:
     DependsOn:
