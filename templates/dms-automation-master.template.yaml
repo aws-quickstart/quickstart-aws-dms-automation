@@ -12,6 +12,8 @@ Metadata:
       - pTaskName
       - DBInstanceClass
       - SampleDbPassword
+      - pS3BucketName
+      - pS3BucketKey
     - Label:
         default: DMS Configuration for New Replication Instance
       Parameters:
@@ -60,6 +62,10 @@ Metadata:
       
     # Parameter Labels
     ParameterLabels:
+      pS3BucketName:
+        default: Migration Bucket Name
+      pS3BucketKey:
+        default: Migration Bucket Key
       DmsEngineVersion:
        default: Engine Version
       DmsInstanceType:
@@ -135,6 +141,14 @@ Metadata:
       CreateVpc:
         default: Create VPC?
 Parameters:
+  pS3BucketName:
+    Type: String
+    Default: ''
+    Description: S3 bucket name which has all the zip files necessary for migration
+  pS3BucketKey:
+    Type: String
+    Default: ''
+    Description: S3 bucket key which has all the zip files necessary for migration
   SampleDbPassword:
     AllowedPattern: "(?=^.{6,255}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*"
     ConstraintDescription: "Min 8 chars. Must include 1 uppercase, 1 lowercase, 1 number, 1 (non / @ \" ') symbol"
@@ -485,12 +499,12 @@ Resources:
         pCodeBuildVPC: !If [CreateSample, !GetAtt VPCStack.Outputs.VPCID, !Ref ExistingVpc]
         pCodeBuildSubnet: !If [CreateSample, !GetAtt VPCStack.Outputs.PrivateSubnet1AID, !Ref ExistingPrivateSubnet1]
         pCodeBuildSecurityGroup: !If [CreateSample, !GetAtt DMSSampleSourceSetup.Outputs.SampleSecurityGroup, !Ref ExistingSecurityGroupId]
-        pS3BucketName: !Ref QSS3BucketName
+        pS3BucketName: !If [CreateSample, !Ref S3Bucket, !Ref pS3BucketName]
         pS3BucketKey: 
           !If 
             - CreateSample 
             - !Sub ${QSS3KeyPrefix}scripts/test.zip
-            - !Ref QSS3KeyPrefix
+            - !Ref pS3BucketKey
         pRDSEndpoint: !If [CreateSample, !GetAtt AuroraStack.Outputs.RDSEndPointAddress, !Ref TargetEndpointServer]
         pRDSName: !If [CreateSample, 'AuroraPostgresDB' , !Ref TargetDBName]
         pRDSUser: !If [CreateSample, 'pgadmin' , !Ref TargetUser]
@@ -504,9 +518,7 @@ Resources:
         pSourceRDSName: !If [CreateSample, 'ORCL' ,!Ref 'AWS::NoValue']
         pSourceRDSPassword: !If [CreateSample, !Ref SampleDbPassword, !Ref 'AWS::NoValue']
         pSourceRDSUser: !If [CreateSample, 'master', !Ref 'AWS::NoValue']
-        pLambdaLayerKey: !Sub ${QSS3KeyPrefix}scripts/boto3.zip
-        pLambdaLayerBucket: !Ref S3Bucket
-
+        
 
 
   DMSSampleSourceSetup:
@@ -531,8 +543,6 @@ Resources:
     Properties:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-replication-setup.template.yaml
       Parameters:
-        LayerBucket: !Ref S3Bucket
-        LayerKey:  !Sub ${QSS3KeyPrefix}scripts/boto3.zip
         CreateNewReplicationInstance: !If [CreateSample, 'yes', !Ref CreateNewReplicationInstance]
         ReplInstanceArn: !Ref pDmsReplicationArn
         PrivateSubnet1: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet1AID, !Ref ExistingPrivateSubnet1]
@@ -556,12 +566,14 @@ Resources:
 
   S3Bucket:
     Type: AWS::S3::Bucket
+    Condition: CreateSample
     Properties:
       VersioningConfiguration:
         Status: Enabled
   
   CopyS3FunctionRole:
     Type: AWS::IAM::Role
+    Condition: CreateSample
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
@@ -598,6 +610,7 @@ Resources:
       - CopyS3FunctionRole
       - CopyS3Function
     Type: 'Custom::CopyFiles'
+    Condition: CreateSample
     Properties:
       ServiceToken: !GetAtt
         - CopyS3Function
@@ -606,11 +619,11 @@ Resources:
       Source: !Ref QSS3BucketName
       Prefix: !Ref QSS3KeyPrefix
       Objects:
-        - scripts/boto3.zip
         - scripts/test.zip
       
   CopyS3Function:
     Type: 'AWS::Lambda::Function'
+    Condition: CreateSample
     Properties:
       Code:
         ZipFile: !Sub
