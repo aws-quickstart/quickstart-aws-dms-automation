@@ -12,6 +12,14 @@
     "ParameterValue": "$[taskcat_genpass_9S]"
   },
   {
+    "ParameterKey": "QSS3BucketName",
+    "ParameterValue": "aws-quickstart"
+  },
+  {
+    "ParameterKey": "QSS3KeyPrefix",
+    "ParameterValue": "quickstart-aws-dms-automation/"
+  },
+  {
     "ParameterKey": "pMigNotify",
     "ParameterValue": "test@example.com"
   }
