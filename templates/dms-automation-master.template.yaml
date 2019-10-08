@@ -47,9 +47,11 @@ Metadata:
       Parameters:
       - CreateVpc
       - AvailabilityZones
+      - EnableBastion
+      - ExistingPublicSubnet1
+      - ExistingPublicSubnet1
       - KeyPairName
       - RemoteAccessCIDR
-      - EnableBastion
       - ExistingSecurityGroupId
       - ExistingPrivateSubnet1
       - ExistingPrivateSubnet2
@@ -140,7 +142,19 @@ Metadata:
         default: Quickstart S3 Prefix
       CreateVpc:
         default: Create VPC?
+      ExistingPublicSubnet1:
+        default: Public Subnet 1
+      ExistingPublicSubnet2:
+        default: Public Subnet 2
 Parameters:
+  ExistingPublicSubnet1:
+    Type: String
+    Description: Public subnet ID 1 with internet gateway for bastion access. If create vpc is set to true leave this blank.
+    Default: ''
+  ExistingPublicSubnet2:
+    Type: String
+    Description: Public subnet ID 1 with internet gateway for bastion access. If create vpc is set to true leave this blank.
+    Default: ''
   pS3BucketName:
     Type: String
     Default: ''
@@ -419,16 +433,10 @@ Resources:
 
       Parameters:
         KeyPairName: !Ref KeyPairName
-        PublicSubnet1ID: !GetAtt
-          - VPCStack
-          - Outputs.PublicSubnet1ID
-        PublicSubnet2ID: !GetAtt
-          - VPCStack
-          - Outputs.PublicSubnet2ID
+        PublicSubnet1ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PublicSubnet1ID, !Ref ExistingPublicSubnet1]
+        PublicSubnet2ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PublicSubnet2ID, !Ref ExistingPublicSubnet2]
         RemoteAccessCIDR: !Ref RemoteAccessCIDR
-        VPCID: !GetAtt
-          - VPCStack
-          - Outputs.VPCID
+        VPCID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.VPCID, !Ref ExistingVpc]
   
   SampleSecurityGroup:
     Condition: CreateSample
@@ -548,6 +556,7 @@ Resources:
         PrivateSubnet1: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet1AID, !Ref ExistingPrivateSubnet1]
         PrivateSubnet2: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet2AID, !Ref ExistingPrivateSubnet2]
         SecurityGroup: !If [CreateSample, !GetAtt DMSSampleSourceSetup.Outputs.SampleSecurityGroup, !Ref ExistingSecurityGroupId]
+        MultiAZ: !Ref DmsMultiAz
         InstanceType: !Ref DmsInstanceType
         PublicAccess: !Ref DmsPublicAccess
         EngineVersion: !Ref DmsEngineVersion
