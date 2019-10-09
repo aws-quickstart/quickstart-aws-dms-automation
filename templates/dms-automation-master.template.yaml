@@ -502,9 +502,9 @@ Resources:
       Parameters:
         pMigNotify: !Ref pMigNotify
         pTaskName: !Ref pTaskName
-        pCodeBuildVPC: !If [CreateSample, !GetAtt VPCStack.Outputs.VPCID, !Ref ExistingVpc]
-        pCodeBuildSubnet: !If [CreateSample, !GetAtt VPCStack.Outputs.PrivateSubnet1AID, !Ref ExistingPrivateSubnet1]
-        pCodeBuildSecurityGroup: !If [CreateSample, !GetAtt DMSSampleSourceSetup.Outputs.SampleSecurityGroup, !Ref ExistingSecurityGroupId]
+        pCodeBuildVPC: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.VPCID, !Ref ExistingVpc]
+        pCodeBuildSubnet: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet1AID, !Ref ExistingPrivateSubnet1]
+        pCodeBuildSecurityGroup: !If [CreateSample, !GetAtt 'SampleSecurityGroup.GroupId', !Ref ExistingSecurityGroupId]
         pS3BucketName: !If [CreateSample, !Ref S3Bucket, !Ref pS3BucketName]
         pS3BucketKey: 
           !If 
@@ -536,7 +536,7 @@ Resources:
       Parameters:
         VPCID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.VPCID, !Ref ExistingVpc]
         Subnet1ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet1AID,!Ref ExistingPrivateSubnet1]
-        Subnet2ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet1AID,!Ref ExistingPrivateSubnet2]
+        Subnet2ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet2AID,!Ref ExistingPrivateSubnet2]
         DBInstanceClass: !Ref DBInstanceClass
         DBMasterUserPassword: !Ref SampleDbPassword
         CustomDBSecurityGroup: !GetAtt 'SampleSecurityGroup.GroupId'

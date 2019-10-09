@@ -478,9 +478,9 @@ Resources:
       Parameters:
         pMigNotify: !Ref pMigNotify
         pTaskName: !Ref pTaskName
-        pCodeBuildVPC: !If [CreateSample, !GetAtt VPCStack.Outputs.VPCID, !Ref ExistingVpc]
-        pCodeBuildSubnet: !If [CreateSample, !GetAtt VPCStack.Outputs.PrivateSubnet1AID, !Ref ExistingPrivateSubnet1]
-        pCodeBuildSecurityGroup: !If [CreateSample, !GetAtt DMSSampleSourceSetup.Outputs.SampleSecurityGroup, !Ref ExistingSecurityGroupId]
+        pCodeBuildVPC: !Ref ExistingVpc
+        pCodeBuildSubnet: !Ref ExistingPrivateSubnet1
+        pCodeBuildSecurityGroup: !If [CreateSample, !GetAtt 'SampleSecurityGroup.GroupId', !Ref ExistingSecurityGroupId]
         pS3BucketName: !If [CreateSample, !Ref S3Bucket, !Ref pS3BucketName]
         pS3BucketKey: 
           !If 
@@ -527,8 +527,8 @@ Resources:
       Parameters:
         CreateNewReplicationInstance: !If [CreateSample, 'yes', !Ref CreateNewReplicationInstance]
         ReplInstanceArn: !Ref pDmsReplicationArn
-        PrivateSubnet1: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet1AID, !Ref ExistingPrivateSubnet1]
-        PrivateSubnet2: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet2AID, !Ref ExistingPrivateSubnet2]
+        PrivateSubnet1: !Ref ExistingPrivateSubnet1
+        PrivateSubnet2: !Ref ExistingPrivateSubnet2
         SecurityGroup: !If [CreateSample, !GetAtt 'SampleSecurityGroup.GroupId', !Ref ExistingSecurityGroupId]
         MultiAz: !Ref DmsMultiAz
         InstanceType: !Ref DmsInstanceType
