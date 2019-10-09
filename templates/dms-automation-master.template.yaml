@@ -492,10 +492,6 @@ Resources:
 
 
   DMSCodePiplineStack:
-    DependsOn:
-      - DMSSampleSourceSetup
-      - DMSReplicationStack
-      - CopyFiles
     Type: 'AWS::CloudFormation::Stack'
     Properties:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-code-pipeline.template.yaml
@@ -617,7 +613,6 @@ Resources:
   CopyFiles:
     DependsOn:
       - CopyS3FunctionRole
-      - CopyS3Function
     Type: 'Custom::CopyFiles'
     Condition: CreateSample
     Properties:
