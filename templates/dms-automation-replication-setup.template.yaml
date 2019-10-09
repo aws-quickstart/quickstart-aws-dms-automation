@@ -36,20 +36,11 @@ Metadata:
           - TargetPort
           - TargetEndpointServer
           - TargetUser
-      - Label:
-          default: Lambda Layer Configuration
-        Parameters:
-          - LayerBucket
-          - LayerKey
     ParameterLabels:
       CreateNewReplicationInstance:
         default: Create New Replication Instance?
       ReplInstanceArn:
         default: Existing DMS Replication Instance Arn
-      LayerBucket:
-        default: Layer S3 Bucket
-      LayerKey:
-        default: Layer S3 Key
       SourceDBName:
         default: Source Database Name
       SourceEngine:
@@ -203,12 +194,6 @@ Parameters:
   TargetUser:
     Type: String
     Description: Target database user name
-  LayerBucket:
-    Type: String
-    Description: S3 bucket of the packaged zip file eampole (test-bucket-1234)
-  LayerKey:
-    Type: String
-    Description: S3 location of the packaged zip file example (folder/sub-folder/test.zip)
 Conditions:
   CreateReplicationInstance: !Equals
     - !Ref CreateNewReplicationInstance
@@ -314,28 +299,16 @@ Resources:
                   - 'dms:DescribeConnections'
                   - 'dms:TestConnection'
                 Resource: '*'
-  DmsEndpointConnTestLayer:
-    Type: 'AWS::Lambda::LayerVersion'
-    Properties:
-      CompatibleRuntimes:
-        - python3.6
-        - python3.7
-      Content:
-        S3Bucket: !Ref LayerBucket
-        S3Key: !Ref LayerKey
-      Description: Latest boto3 layer for DMS wait handler
   DmsEndpointConnTest:
     Type: 'AWS::Lambda::Function'
     Properties:
       Description: Checks the connection between DMS replication instance and DMS endpoint
       Handler: index.lambda_handler
-      Runtime: python3.6
+      Runtime: python3.7
       Role: !GetAtt
         - DmsEndpointConnTestRole
         - Arn
       Timeout: 900
-      Layers:
-        - !Ref DmsEndpointConnTestLayer
       Code:
         ZipFile: |
           import cfnresponse

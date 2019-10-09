@@ -42,16 +42,7 @@ Metadata:
           default: Migration Notifications
         Parameters:
           - pMigNotify
-      - Label:
-          default: Lambda Layer
-        Parameters:
-          - pLambdaLayerBucket
-          - pLambdaLayerKey
     ParameterLabels:
-      pLambdaLayerBucket:
-        default: Lambda Layer Bucket
-      pLambdaLayerKey:
-        default: Lambda Layer Key
       pCreateSample:
         default: Create Sample Source?
       pFullLoadOnly:
@@ -74,8 +65,6 @@ Metadata:
         default: RDS Endpoint
       pRDSName:
         default: Database Name
-      pSourceRDSUser:
-        default: Source Database Username
       pSourceRDSPassword:
         default: Source Database Password
       pSourceRDSEndpoint:
@@ -101,12 +90,6 @@ Conditions:
     - !Ref pCreateSample
     - 'yes'
 Parameters:
-  pLambdaLayerBucket:
-    Type: String
-    Description: S3 bucket with packaged boto3
-  pLambdaLayerKey:
-    Type: String
-    Description: S3 key with packaged boto3
   pCreateSample:
     Type: String
     Description: Please choose this option if you want to populate source database
@@ -922,9 +905,8 @@ Resources:
                 Effect: Allow
                 Resource: !Sub 'arn:aws:s3:::${rArtifactStoreS3Location}*'
             Version: 2012-10-17
-          PolicyName: !Sub '${AWS::StackName}-${AWS::Region}-S3CleanupPolicy'
-      RoleName: !Sub '${AWS::StackName}-${AWS::Region}-S3CleanupRole'
-  
+          PolicyName: S3CleanupPolicy
+      
   S3CleanUpFunction:
     Type: 'AWS::Lambda::Function'
     Properties:
@@ -985,17 +967,6 @@ Resources:
                   - 'dms:DeleteReplicationTask'
                   - 'dms:StopReplicationTask'
                 Resource: '*'
-  DmsTaskCleanupLayer:
-    Condition: cCreateSource
-    Type: 'AWS::Lambda::LayerVersion'
-    Properties:
-      CompatibleRuntimes:
-        - python3.6
-        - python3.7
-      Content:
-        S3Bucket: !Ref pLambdaLayerBucket
-        S3Key: !Ref pLambdaLayerKey
-      Description: Latest boto3 layer for DMS wait handler
   
   DmsCleanupResource:
     Condition: cCreateSource
@@ -1015,18 +986,17 @@ Resources:
     Properties:
       Description: Cleans up the DMS replication task
       Handler: index.lambda_handler
-      Runtime: python3.6
+      Runtime: python3.7
       Role: !GetAtt
         - DmsTaskCleanupRole
         - Arn
       Timeout: 900
-      Layers:
-        - !Ref DmsTaskCleanupLayer
       Code:
         ZipFile: |
           import cfnresponse
           import json
           import boto3
+          import time
           
           dms = boto3.client('dms')
           def lambda_handler(event, context):
@@ -1034,6 +1004,7 @@ Resources:
             print('Received event: %s' % json.dumps(event, indent=2))
             try:
               if event['RequestType'] == 'Delete':
+                time.sleep(5)
                 print('Delete event. Task will be stopped and deleted')
                 print('The task name is %s' %(task_name))
                 task_des = dms.describe_replication_tasks(Filters=[{'Name': 'replication-task-id','Values':[task_name]}])

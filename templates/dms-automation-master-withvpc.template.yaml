@@ -45,7 +45,6 @@ Metadata:
     - Label: 
         default: Network Configuration
       Parameters:
-      - CreateVpc
       - AvailabilityZones
       - EnableBastion
       - ExistingPublicSubnet1
@@ -140,8 +139,6 @@ Metadata:
         default: Quickstart S3 Bucket Name
       QSS3KeyPrefix:
         default: Quickstart S3 Prefix
-      CreateVpc:
-        default: Create VPC?
       ExistingPublicSubnet1:
         default: Public Subnet 1
       ExistingPublicSubnet2:
@@ -353,13 +350,6 @@ Parameters:
     Default: quickstart-aws-dms-automation/
     Description: "S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/)."
     Type: String
-  CreateVpc:
-    AllowedValues:
-      - "true"
-      - "false"
-    Default: "true"
-    Description: "If true, a VPC stack will be created. If false, please populate the VpcParameter mappings"
-    Type: String
   DmsEngineVersion: 
     Default: 3.1.3
     Type: String
@@ -400,8 +390,6 @@ Parameters:
       
     
 Conditions:
-  CreateNewVpc: 
-    !Or [!Equals [!Ref CreateVpc, 'true'], Condition: CreateSample]
   CreateBastion: 
     !Equals [!Ref EnableBastion, 'true']
   CreateSample: !Equals
@@ -409,19 +397,8 @@ Conditions:
     - 'yes'
   CreateReplicationInst:
     !Or [!Equals [!Ref CreateNewReplicationInstance, 'yes'], Condition: CreateSample]
-Resources:
 
-  VPCStack:
-    Condition: CreateNewVpc
-    Type: 'AWS::CloudFormation::Stack'
-    DependsOn: CopyFiles
-    Properties:
-      TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-aws-vpc/templates/aws-vpc.template
-      Parameters:
-        AvailabilityZones: !Join
-          - ','
-          - !Ref AvailabilityZones
-        NumberOfAZs: '2'
+Resources:
 
   BastionStack:
     Condition: CreateBastion
@@ -432,10 +409,10 @@ Resources:
 
       Parameters:
         KeyPairName: !Ref KeyPairName
-        PublicSubnet1ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PublicSubnet1ID, !Ref ExistingPublicSubnet1]
-        PublicSubnet2ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PublicSubnet2ID, !Ref ExistingPublicSubnet2]
+        PublicSubnet1ID: !Ref ExistingPublicSubnet1
+        PublicSubnet2ID: !Ref ExistingPublicSubnet2
         RemoteAccessCIDR: !Ref RemoteAccessCIDR
-        VPCID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.VPCID, !Ref ExistingVpc]
+        VPCID: !Ref ExistingVpc
   
   SampleSecurityGroup:
     Condition: CreateSample
@@ -459,8 +436,7 @@ Resources:
           FromPort: '5432'
           IpProtocol: tcp
           ToPort: '5432'
-      VpcId: 
-        !If [CreateNewVpc, !GetAtt VPCStack.Outputs.VPCID, !Ref ExistingVpc]
+      VpcId: !Ref ExistingVpc
       Tags:
       - Key: Name
         Value: !Sub CustomSGGroup-${AWS::StackName}
@@ -482,9 +458,9 @@ Resources:
     Properties:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-amazon-aurora-postgresql/templates/aurora_postgres.template.yaml
       Parameters:
-        Subnet1ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet1AID, !Ref ExistingPrivateSubnet1]
-        Subnet2ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet2AID, !Ref ExistingPrivateSubnet2]
-        VPCID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.VPCID, !Ref ExistingVpc]
+        Subnet1ID: !Ref ExistingPrivateSubnet1
+        Subnet2ID: !Ref ExistingPrivateSubnet2
+        VPCID:  !Ref ExistingVpc
         CustomDBSecurityGroup: !GetAtt 'SampleSecurityGroup.GroupId'
         DBInstanceClass: !Ref DBInstanceClass
         DBMasterUserPassword: !Ref SampleDbPassword
@@ -502,8 +478,8 @@ Resources:
       Parameters:
         pMigNotify: !Ref pMigNotify
         pTaskName: !Ref pTaskName
-        pCodeBuildVPC: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.VPCID, !Ref ExistingVpc]
-        pCodeBuildSubnet: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet1AID, !Ref ExistingPrivateSubnet1]
+        pCodeBuildVPC: !Ref ExistingVpc
+        pCodeBuildSubnet: !Ref ExistingPrivateSubnet1
         pCodeBuildSecurityGroup: !If [CreateSample, !GetAtt 'SampleSecurityGroup.GroupId', !Ref ExistingSecurityGroupId]
         pS3BucketName: !If [CreateSample, !Ref S3Bucket, !Ref pS3BucketName]
         pS3BucketKey: 
@@ -534,9 +510,9 @@ Resources:
     Properties:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-sample-source.template.yaml
       Parameters:
-        VPCID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.VPCID, !Ref ExistingVpc]
-        Subnet1ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet1AID,!Ref ExistingPrivateSubnet1]
-        Subnet2ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet2AID,!Ref ExistingPrivateSubnet2]
+        VPCID: !Ref ExistingVpc
+        Subnet1ID: !Ref ExistingPrivateSubnet1
+        Subnet2ID: !Ref ExistingPrivateSubnet2
         DBInstanceClass: !Ref DBInstanceClass
         DBMasterUserPassword: !Ref SampleDbPassword
         CustomDBSecurityGroup: !GetAtt 'SampleSecurityGroup.GroupId'
@@ -551,8 +527,8 @@ Resources:
       Parameters:
         CreateNewReplicationInstance: !If [CreateSample, 'yes', !Ref CreateNewReplicationInstance]
         ReplInstanceArn: !Ref pDmsReplicationArn
-        PrivateSubnet1: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet1AID, !Ref ExistingPrivateSubnet1]
-        PrivateSubnet2: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet2AID, !Ref ExistingPrivateSubnet2]
+        PrivateSubnet1: !Ref ExistingPrivateSubnet1
+        PrivateSubnet2: !Ref ExistingPrivateSubnet2
         SecurityGroup: !If [CreateSample, !GetAtt 'SampleSecurityGroup.GroupId', !Ref ExistingSecurityGroupId]
         MultiAz: !Ref DmsMultiAz
         InstanceType: !Ref DmsInstanceType

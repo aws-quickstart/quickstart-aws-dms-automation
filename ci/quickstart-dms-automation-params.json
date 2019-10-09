@@ -12,6 +12,10 @@
     "ParameterValue": "$[taskcat_genpass_9S]"
   },
   {
+    "ParameterKey": "QSS3BucketName",
+    "ParameterValue": "$[taskcat_autobucket]"
+  },
+  {
     "ParameterKey": "pMigNotify",
     "ParameterValue": "test@example.com"
   }
