@@ -905,7 +905,7 @@ Resources:
                 Effect: Allow
                 Resource: !Sub 'arn:aws:s3:::${rArtifactStoreS3Location}*'
             Version: 2012-10-17
-          PolicyName: S3CleanupPolicy'
+          PolicyName: S3CleanupPolicy
       
   S3CleanUpFunction:
     Type: 'AWS::Lambda::Function'
