@@ -19,6 +19,6 @@ global:
   reporting: true
  
 tests:
-  quickstart-aws-dms-automationt1:
+  vpc:
     parameter_input: quickstart-dms-automation-params.json
     template_file: dms-automation-master.template.yaml
