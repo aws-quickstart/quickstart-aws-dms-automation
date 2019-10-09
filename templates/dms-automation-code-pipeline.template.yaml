@@ -996,6 +996,7 @@ Resources:
           import cfnresponse
           import json
           import boto3
+          import time
           
           dms = boto3.client('dms')
           def lambda_handler(event, context):
@@ -1003,6 +1004,7 @@ Resources:
             print('Received event: %s' % json.dumps(event, indent=2))
             try:
               if event['RequestType'] == 'Delete':
+                time.sleep(5)
                 print('Delete event. Task will be stopped and deleted')
                 print('The task name is %s' %(task_name))
                 task_des = dms.describe_replication_tasks(Filters=[{'Name': 'replication-task-id','Values':[task_name]}])
