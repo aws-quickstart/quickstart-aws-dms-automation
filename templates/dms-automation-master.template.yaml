@@ -417,7 +417,6 @@ Resources:
     DependsOn: CopyFiles
     Properties:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-aws-vpc/templates/aws-vpc.template
-git submodule add <your another repo url>
       Parameters:
         AvailabilityZones: !Join
           - ','
