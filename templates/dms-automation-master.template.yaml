@@ -445,20 +445,20 @@ Resources:
       SecurityGroupEgress:
         -
           CidrIp: 0.0.0.0/0
-          FromPort: '-1'
+          FromPort: -1
           IpProtocol: '-1'
-          ToPort: '-1'
+          ToPort: -1
       SecurityGroupIngress:
         -
           CidrIp: !Ref RemoteAccessCIDR
-          FromPort: '1521'
+          FromPort: 1521
           IpProtocol: tcp
-          ToPort: '1521'
+          ToPort: 1521
         -
           CidrIp: !Ref RemoteAccessCIDR
-          FromPort: '5432'
+          FromPort: 5432
           IpProtocol: tcp
-          ToPort: '5432'
+          ToPort: 5432
       VpcId: 
         !If [CreateNewVpc, !GetAtt VPCStack.Outputs.VPCID, !Ref ExistingVpc]
       Tags:
