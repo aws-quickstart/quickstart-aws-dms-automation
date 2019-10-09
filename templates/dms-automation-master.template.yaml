@@ -482,8 +482,8 @@ Resources:
     Properties:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-amazon-aurora-postgresql/templates/aurora_postgres.template.yaml
       Parameters:
-        Subnet1ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet1AID,!Ref ExistingPrivateSubnet1]
-        Subnet2ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet2AID,!Ref ExistingPrivateSubnet2]
+        Subnet1ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet1AID, !Ref ExistingPrivateSubnet1]
+        Subnet2ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet2AID, !Ref ExistingPrivateSubnet2]
         VPCID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.VPCID, !Ref ExistingVpc]
         CustomDBSecurityGroup: !GetAtt 'SampleSecurityGroup.GroupId'
         DBInstanceClass: !Ref DBInstanceClass
@@ -534,7 +534,7 @@ Resources:
     Properties:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-sample-source.template.yaml
       Parameters:
-         VPCID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.VPCID, !Ref ExistingVpc]
+        VPCID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.VPCID, !Ref ExistingVpc]
         Subnet1ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet1AID,!Ref ExistingPrivateSubnet1]
         Subnet2ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet1AID,!Ref ExistingPrivateSubnet2]
         DBInstanceClass: !Ref DBInstanceClass
