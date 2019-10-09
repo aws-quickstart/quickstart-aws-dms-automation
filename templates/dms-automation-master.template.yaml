@@ -45,17 +45,11 @@ Metadata:
     - Label: 
         default: Network Configuration
       Parameters:
-      - CreateVpc
       - AvailabilityZones
       - EnableBastion
-      - ExistingPublicSubnet1
-      - ExistingPublicSubnet1
       - KeyPairName
       - RemoteAccessCIDR
       - ExistingSecurityGroupId
-      - ExistingPrivateSubnet1
-      - ExistingPrivateSubnet2
-      - ExistingVpc
     - Label: 
         default: AWS Quick Start configuration 
       Parameters:
@@ -88,12 +82,6 @@ Metadata:
         default: Notification Email
       ExistingSecurityGroupId:
         default: Existing Security Group ID
-      ExistingPrivateSubnet1:
-        default: Existing Private Subnet ID 1
-      ExistingPrivateSubnet2:
-        default: Existing Private Subnet ID 2
-      ExistingVpc:
-        default: Existing VPC ID
       pTaskName:
         default: Task Name
       pDmsSourceArn:
@@ -140,21 +128,7 @@ Metadata:
         default: Quickstart S3 Bucket Name
       QSS3KeyPrefix:
         default: Quickstart S3 Prefix
-      CreateVpc:
-        default: Create VPC?
-      ExistingPublicSubnet1:
-        default: Public Subnet 1
-      ExistingPublicSubnet2:
-        default: Public Subnet 2
 Parameters:
-  ExistingPublicSubnet1:
-    Type: String
-    Description: Public subnet ID 1 with internet gateway for bastion access. If create vpc is set to true leave this blank.
-    Default: ''
-  ExistingPublicSubnet2:
-    Type: String
-    Description: Public subnet ID 1 with internet gateway for bastion access. If create vpc is set to true leave this blank.
-    Default: ''
   pS3BucketName:
     Type: String
     Default: ''
@@ -210,19 +184,6 @@ Parameters:
     Type: String
     Description:  Existing Security group used by the framework. Please ensure that this has access to RDS endpoint and DMS replication instance
     Default: '' 
-  ExistingPrivateSubnet1:
-    Type: String
-    Description: Private subnet ID 1 with NAT gateway
-    Default: ''
-  ExistingPrivateSubnet2:
-    Type: String
-    Description: Private subnet ID 2 with NAT gateway
-    Default: ''
-  ExistingVpc:
-    Type: String
-    Description: Existing VPC ID. Subnet and security group should
-      belong to this VPC.
-    Default: ''
   pTaskName:
     Type: String
     Description: Name of DMS task. If left empty, stack name will be used.
@@ -353,13 +314,6 @@ Parameters:
     Default: quickstart-aws-dms-automation/
     Description: "S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/)."
     Type: String
-  CreateVpc:
-    AllowedValues:
-      - "true"
-      - "false"
-    Default: "true"
-    Description: "If true, a VPC stack will be created. If false, please populate the VpcParameter mappings"
-    Type: String
   DmsEngineVersion: 
     Default: 3.1.3
     Type: String
@@ -400,8 +354,6 @@ Parameters:
       
     
 Conditions:
-  CreateNewVpc: 
-    !Or [!Equals [!Ref CreateVpc, 'true'], Condition: CreateSample]
   CreateBastion: 
     !Equals [!Ref EnableBastion, 'true']
   CreateSample: !Equals
@@ -412,7 +364,6 @@ Conditions:
 Resources:
 
   VPCStack:
-    Condition: CreateNewVpc
     Type: 'AWS::CloudFormation::Stack'
     DependsOn: CopyFiles
     Properties:
@@ -432,10 +383,10 @@ Resources:
 
       Parameters:
         KeyPairName: !Ref KeyPairName
-        PublicSubnet1ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PublicSubnet1ID, !Ref ExistingPublicSubnet1]
-        PublicSubnet2ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PublicSubnet2ID, !Ref ExistingPublicSubnet2]
+        PublicSubnet1ID: !GetAtt VPCStack.Outputs.PublicSubnet1ID
+        PublicSubnet2ID: !GetAtt VPCStack.Outputs.PublicSubnet2ID
         RemoteAccessCIDR: !Ref RemoteAccessCIDR
-        VPCID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.VPCID, !Ref ExistingVpc]
+        VPCID: !GetAtt VPCStack.Outputs.VPCID
   
   SampleSecurityGroup:
     Condition: CreateSample
@@ -459,8 +410,7 @@ Resources:
           FromPort: 5432
           IpProtocol: tcp
           ToPort: 5432
-      VpcId: 
-        !If [CreateNewVpc, !GetAtt VPCStack.Outputs.VPCID, !Ref ExistingVpc]
+      VpcId: !GetAtt VPCStack.Outputs.VPCID
       Tags:
       - Key: Name
         Value: !Sub CustomSGGroup-${AWS::StackName}
@@ -482,9 +432,9 @@ Resources:
     Properties:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-amazon-aurora-postgresql/templates/aurora_postgres.template.yaml
       Parameters:
-        Subnet1ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet1AID, !Ref ExistingPrivateSubnet1]
-        Subnet2ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet2AID, !Ref ExistingPrivateSubnet2]
-        VPCID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.VPCID, !Ref ExistingVpc]
+        Subnet1ID: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
+        Subnet2ID: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
+        VPCID: !GetAtt VPCStack.Outputs.VPCID
         CustomDBSecurityGroup: !GetAtt 'SampleSecurityGroup.GroupId'
         DBInstanceClass: !Ref DBInstanceClass
         DBMasterUserPassword: !Ref SampleDbPassword
@@ -498,8 +448,8 @@ Resources:
       Parameters:
         pMigNotify: !Ref pMigNotify
         pTaskName: !Ref pTaskName
-        pCodeBuildVPC: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.VPCID, !Ref ExistingVpc]
-        pCodeBuildSubnet: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet1AID, !Ref ExistingPrivateSubnet1]
+        pCodeBuildVPC: !GetAtt VPCStack.Outputs.VPCID
+        pCodeBuildSubnet: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
         pCodeBuildSecurityGroup: !If [CreateSample, !GetAtt 'SampleSecurityGroup.GroupId', !Ref ExistingSecurityGroupId]
         pS3BucketName: !If [CreateSample, !Ref S3Bucket, !Ref pS3BucketName]
         pS3BucketKey: 
@@ -530,25 +480,25 @@ Resources:
     Properties:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-sample-source.template.yaml
       Parameters:
-        VPCID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.VPCID, !Ref ExistingVpc]
-        Subnet1ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet1AID,!Ref ExistingPrivateSubnet1]
-        Subnet2ID: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet2AID,!Ref ExistingPrivateSubnet2]
+        VPCID: VPCStack.Outputs.VPCID
+        Subnet1ID: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
+        Subnet2ID: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
         DBInstanceClass: !Ref DBInstanceClass
         DBMasterUserPassword: !Ref SampleDbPassword
-        CustomDBSecurityGroup: !GetAtt 'SampleSecurityGroup.GroupId'
+        CustomDBSecurityGroup: !GetAtt SampleSecurityGroup.GroupId
 
 
   DMSReplicationStack:
     Condition: CreateReplicationInst
-    Type: 'AWS::CloudFormation::Stack'
+    Type: AWS::CloudFormation::Stack
     DependsOn: CopyFiles
     Properties:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-replication-setup.template.yaml
       Parameters:
         CreateNewReplicationInstance: !If [CreateSample, 'yes', !Ref CreateNewReplicationInstance]
         ReplInstanceArn: !Ref pDmsReplicationArn
-        PrivateSubnet1: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet1AID, !Ref ExistingPrivateSubnet1]
-        PrivateSubnet2: !If [CreateNewVpc, !GetAtt VPCStack.Outputs.PrivateSubnet2AID, !Ref ExistingPrivateSubnet2]
+        PrivateSubnet1: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
+        PrivateSubnet2: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
         SecurityGroup: !If [CreateSample, !GetAtt 'SampleSecurityGroup.GroupId', !Ref ExistingSecurityGroupId]
         MultiAz: !Ref DmsMultiAz
         InstanceType: !Ref DmsInstanceType
