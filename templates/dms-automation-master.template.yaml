@@ -480,7 +480,7 @@ Resources:
     Properties:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-sample-source.template.yaml
       Parameters:
-        VPCID: VPCStack.Outputs.VPCID
+        VPCID: !GetAtt VPCStack.Outputs.VPCID
         Subnet1ID: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
         Subnet2ID: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
         DBInstanceClass: !Ref DBInstanceClass
