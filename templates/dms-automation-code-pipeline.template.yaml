@@ -997,6 +997,7 @@ Resources:
           import json
           import boto3
           import time
+          import botocore
           
           dms = boto3.client('dms')
           def lambda_handler(event, context):
@@ -1007,16 +1008,23 @@ Resources:
                 time.sleep(5)
                 print('Delete event. Task will be stopped and deleted')
                 print('The task name is %s' %(task_name))
-                task_des = dms.describe_replication_tasks(Filters=[{'Name': 'replication-task-id','Values':[task_name]}])
-                task_arn = task_des['ReplicationTasks'][0]['ReplicationTaskArn']
-                print('The task arn is %s' %(task_arn))
+                try:
+                  
+                  task_des = dms.describe_replication_tasks(Filters=[{'Name': 'replication-task-id','Values':[task_name]}])
+                  task_arn = task_des['ReplicationTasks'][0]['ReplicationTaskArn']
+                  print('The task arn is %s' %(task_arn))
 
-                dms.stop_replication_task(ReplicationTaskArn=task_arn)
-                waiter_stop = dms.get_waiter('replication_task_stopped')
-                waiter_stop.wait(Filters=[{'Name': 'replication-task-arn','Values':[task_arn]}])
-                dms.delete_replication_task(ReplicationTaskArn=task_arn)
-                waiter = dms.get_waiter('replication_task_deleted')
-                waiter.wait(Filters=[{'Name': 'replication-task-arn','Values':[task_arn]}])
+                  dms.stop_replication_task(ReplicationTaskArn=task_arn)
+                  waiter_stop = dms.get_waiter('replication_task_stopped')
+                  waiter_stop.wait(Filters=[{'Name': 'replication-task-arn','Values':[task_arn]}])
+                  dms.delete_replication_task(ReplicationTaskArn=task_arn)
+                  waiter = dms.get_waiter('replication_task_deleted')
+                  waiter.wait(Filters=[{'Name': 'replication-task-arn','Values':[task_arn]}])
+                except botocore.exceptions.ClientError as e:
+                  if e.response['Error']['Code'] == 'ResourceNotFoundFault':
+                    print('Task was not found. Proceeding with delete')
+                  else:
+                    raise
                 cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
                 
               else:
