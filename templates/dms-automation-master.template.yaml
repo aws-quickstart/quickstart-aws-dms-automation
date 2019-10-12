@@ -455,7 +455,7 @@ Resources:
         pS3BucketKey: 
           !If 
             - CreateSample 
-            - !Sub ${QSS3KeyPrefix}scripts/test.zip
+            - !Sub ${QSS3KeyPrefix}scripts/test1.zip
             - !Ref pS3BucketKey
         pRDSEndpoint: !If [CreateSample, !GetAtt AuroraStack.Outputs.RDSEndPointAddress, !Ref TargetEndpointServer]
         pRDSName: !If [CreateSample, 'AuroraPostgresDB' , !Ref TargetDBName]
