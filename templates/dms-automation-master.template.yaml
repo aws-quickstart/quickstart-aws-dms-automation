@@ -561,8 +561,6 @@ Resources:
                   - !Sub 'arn:${AWS::Partition}:s3:::${QSS3BucketName}/*'
 
   CopyFiles:
-    DependsOn:
-      - CopyS3FunctionRole
     Type: 'Custom::CopyFiles'
     Condition: CreateSample
     Properties:

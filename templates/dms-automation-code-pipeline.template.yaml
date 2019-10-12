@@ -971,9 +971,6 @@ Resources:
   DmsCleanupResource:
     Condition: cCreateSource
     Type: 'Custom::DmsCleanupResource'
-    DependsOn:
-      - DmsCleanupFunction
-      - DmsTaskCleanupRole
     Properties:
       ServiceToken: !GetAtt
         - DmsCleanupFunction
