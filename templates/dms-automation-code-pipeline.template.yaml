@@ -869,9 +869,6 @@ Resources:
         - !Ref rSnsApproval
   ArtifactStoreCleanUp:
     Type: 'Custom::S3CleanUp'
-    DependsOn:
-      - S3CleanUpRole
-      - S3CleanUpFunction
     Properties:
       DestBucket: !Ref rArtifactStoreS3Location
       ServiceToken: !GetAtt
