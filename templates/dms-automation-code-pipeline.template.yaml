@@ -869,9 +869,6 @@ Resources:
         - !Ref rSnsApproval
   ArtifactStoreCleanUp:
     Type: 'Custom::S3CleanUp'
-    DependsOn:
-      - S3CleanUpRole
-      - S3CleanUpFunction
     Properties:
       DestBucket: !Ref rArtifactStoreS3Location
       ServiceToken: !GetAtt
@@ -967,18 +964,32 @@ Resources:
                   - 'dms:DeleteReplicationTask'
                   - 'dms:StopReplicationTask'
                 Resource: '*'
+        - PolicyName: codebuild-cleanup
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'codebuild:StopBuild'
+                  - 'codebuild:BatchDeleteBuilds'
+                  - 'codebuild:ListBuildsForProject'
+                Resource: 
+                  - !Sub 'arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/${rApplicationCodeBuild}'
+                  - !If [cCreateSource, !Sub 'arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/${rSampleCodeBuild}', !Ref 'AWS::NoValue']
+                  - !If [cCdc, !Sub 'arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/${rApplicationCodeBuildProd}', !Ref 'AWS::NoValue']
+
   
   DmsCleanupResource:
     Condition: cCreateSource
     Type: 'Custom::DmsCleanupResource'
-    DependsOn:
-      - DmsCleanupFunction
-      - DmsTaskCleanupRole
     Properties:
       ServiceToken: !GetAtt
         - DmsCleanupFunction
         - Arn
       TaskName: !If [cTaskName, !Ref 'AWS::StackName', !Ref pTaskName]
+      SampleCodeBuild : !If [cCreateSource,!Ref rSampleCodeBuild, !Ref 'AWS::NoValue']
+      PreCDC: !If [cCdc, !Ref rApplicationCodeBuildProd, !Ref 'AWS::NoValue']
+      SetupTarget: !Ref rApplicationCodeBuild
 
   DmsCleanupFunction:
     Condition: cCreateSource
@@ -997,26 +1008,47 @@ Resources:
           import json
           import boto3
           import time
+          import botocore
           
           dms = boto3.client('dms')
+          codebuild = boto3.client('codebuild')
           def lambda_handler(event, context):
             task_name = event['ResourceProperties']['TaskName'].lower()
+            sample = event['ResourceProperties']['SampleCodeBuild']
+            precdc = event['ResourceProperties']['PreCDC']
+            setup = event['ResourceProperties']['SetupTarget']
             print('Received event: %s' % json.dumps(event, indent=2))
             try:
               if event['RequestType'] == 'Delete':
                 time.sleep(5)
-                print('Delete event. Task will be stopped and deleted')
+                print('Delete event. Task and Codebuild will be stopped and deleted')
                 print('The task name is %s' %(task_name))
-                task_des = dms.describe_replication_tasks(Filters=[{'Name': 'replication-task-id','Values':[task_name]}])
-                task_arn = task_des['ReplicationTasks'][0]['ReplicationTaskArn']
-                print('The task arn is %s' %(task_arn))
+                if sample:
+                  cleanup_codebuild(sample)
+                else:
+                  print('No sample')
+                if precdc:
+                  cleanup_codebuild(precdc)
+                else:
+                  print('Full Load only')
+                cleanup_codebuild(setup)
+                try:
 
-                dms.stop_replication_task(ReplicationTaskArn=task_arn)
-                waiter_stop = dms.get_waiter('replication_task_stopped')
-                waiter_stop.wait(Filters=[{'Name': 'replication-task-arn','Values':[task_arn]}])
-                dms.delete_replication_task(ReplicationTaskArn=task_arn)
-                waiter = dms.get_waiter('replication_task_deleted')
-                waiter.wait(Filters=[{'Name': 'replication-task-arn','Values':[task_arn]}])
+                  task_des = dms.describe_replication_tasks(Filters=[{'Name': 'replication-task-id','Values':[task_name]}])
+                  task_arn = task_des['ReplicationTasks'][0]['ReplicationTaskArn']
+                  print('The task arn is %s' %(task_arn))
+
+                  dms.stop_replication_task(ReplicationTaskArn=task_arn)
+                  waiter_stop = dms.get_waiter('replication_task_stopped')
+                  waiter_stop.wait(Filters=[{'Name': 'replication-task-arn','Values':[task_arn]}])
+                  dms.delete_replication_task(ReplicationTaskArn=task_arn)
+                  waiter = dms.get_waiter('replication_task_deleted')
+                  waiter.wait(Filters=[{'Name': 'replication-task-arn','Values':[task_arn]}])
+                except botocore.exceptions.ClientError as e:
+                  if e.response['Error']['Code'] == 'ResourceNotFoundFault':
+                    print('Task was not found. Proceeding with delete')
+                  else:
+                    raise
                 cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
                 
               else:
@@ -1026,6 +1058,30 @@ Resources:
             except Exception as e:
               print(e)
               cfnresponse.send(event, context, cfnresponse.FAILED, {}, '')
+          def cleanup_codebuild(proj):
+            try:
+              r = codebuild.list_builds_for_project(projectName=proj)
+              if r['ids']:
+                for build_id in r['ids']:
+                  print('Stopping build %s' %(build_id))
+                  s = codebuild.stop_build(id=build_id)
+                  i = 0
+                  while i < 10:
+                    time.sleep(6)
+                    i = i + 1
+                    t = codebuild.batch_get_builds(ids=[build_id])
+                    status = t['builds'][0]['buildStatus']
+                    if status in ['STOPPED','SUCCEEDED']:
+                      print('Build stopped %s' %(build_id))
+                      break
+                  print('Deleting build %s' %(build_id))
+                  del_build = codebuild.batch_delete_builds(ids=[build_id])
+            except botocore.exceptions.ClientError as e:
+              if e.response['Error']['Code'] == 'ResourceNotFoundFault':
+                print('Build was not found. Proceeding with delete')
+              else:
+                print(e)
+                raise
 
 
 

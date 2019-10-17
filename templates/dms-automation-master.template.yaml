@@ -455,7 +455,7 @@ Resources:
         pS3BucketKey: 
           !If 
             - CreateSample 
-            - !Sub ${QSS3KeyPrefix}scripts/test.zip
+            - !Sub ${QSS3KeyPrefix}scripts/test1.zip
             - !Ref pS3BucketKey
         pRDSEndpoint: !If [CreateSample, !GetAtt AuroraStack.Outputs.RDSEndPointAddress, !Ref TargetEndpointServer]
         pRDSName: !If [CreateSample, 'AuroraPostgresDB' , !Ref TargetDBName]
@@ -480,7 +480,7 @@ Resources:
     Properties:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-sample-source.template.yaml
       Parameters:
-        VPCID: VPCStack.Outputs.VPCID
+        VPCID: !GetAtt VPCStack.Outputs.VPCID
         Subnet1ID: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
         Subnet2ID: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
         DBInstanceClass: !Ref DBInstanceClass
@@ -561,8 +561,6 @@ Resources:
                   - !Sub 'arn:${AWS::Partition}:s3:::${QSS3BucketName}/*'
 
   CopyFiles:
-    DependsOn:
-      - CopyS3FunctionRole
     Type: 'Custom::CopyFiles'
     Condition: CreateSample
     Properties:
