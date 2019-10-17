@@ -975,8 +975,8 @@ Resources:
                   - 'codebuild:ListBuildsForProject'
                 Resource: 
                   - !Sub 'arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/${rApplicationCodeBuild}'
-                  - !Sub 'arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/${rSampleCodeBuild}'
-                  - !Sub 'arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/${rApplicationCodeBuildProd}'
+                  - !If [cCreateSource, !Sub 'arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/${rSampleCodeBuild}', !Ref 'AWS::NoValue']
+                  - !If [cCdc, !Sub 'arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/${rApplicationCodeBuildProd}', !Ref 'AWS::NoValue']
 
   
   DmsCleanupResource:
@@ -987,8 +987,8 @@ Resources:
         - DmsCleanupFunction
         - Arn
       TaskName: !If [cTaskName, !Ref 'AWS::StackName', !Ref pTaskName]
-      SampleCodeBuild : !Ref rSampleCodeBuild
-      PreCDC: !Ref rApplicationCodeBuildProd
+      SampleCodeBuild : !If [cCreateSource,!Ref rSampleCodeBuild, !Ref 'AWS::NoValue']
+      PreCDC: !If [cCdc, !Ref rApplicationCodeBuildProd, !Ref 'AWS::NoValue']
       SetupTarget: !Ref rApplicationCodeBuild
 
   DmsCleanupFunction:
@@ -1023,8 +1023,14 @@ Resources:
                 time.sleep(5)
                 print('Delete event. Task and Codebuild will be stopped and deleted')
                 print('The task name is %s' %(task_name))
-                cleanup_codebuild(sample)
-                cleanup_codebuild(precdc)
+                if sample:
+                  cleanup_codebuild(sample)
+                else:
+                  print('No sample')
+                if precdc:
+                  cleanup_codebuild(precdc)
+                else:
+                  print('Full Load only')
                 cleanup_codebuild(setup)
                 try:
 
