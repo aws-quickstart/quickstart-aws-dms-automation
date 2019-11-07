@@ -507,6 +507,7 @@ Resources:
       Value: !Ref pRDSPassword
   rSourceRdsPassword:
     Type: 'AWS::SSM::Parameter'
+    Condition : cCreateSource
     Properties:
       Description: SSM Parameter for Source RDS Password.
       Name: !Sub 'DMS-${AWS::StackName}-source'
