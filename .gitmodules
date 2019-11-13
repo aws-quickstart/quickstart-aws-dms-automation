@@ -6,9 +6,6 @@
 	path = submodules/quickstart-aws-vpc
 	url = https://github.com/aws-quickstart/quickstart-aws-vpc.git
 	branch = master
-[submodule "quickstart-amazon-aurora-postgresql"]
-	path = quickstart-amazon-aurora-postgresql
-	url = https://github.com/aws-quickstart/quickstart-amazon-aurora-postgresql.git
 [submodule "submodules/quickstart-amazon-aurora-postgresql"]
 	path = submodules/quickstart-amazon-aurora-postgresql
 	url = https://github.com/aws-quickstart/quickstart-amazon-aurora-postgresql.git
