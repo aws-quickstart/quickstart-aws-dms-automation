@@ -2,6 +2,13 @@ AWSTemplateFormatVersion: 2010-09-09
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
+    - Label: 
+        default: Network Configuration
+      Parameters:
+      - AvailabilityZones
+      - EnableBastion
+      - KeyPairName
+      - RemoteAccessCIDR
     - Label:
         default: Migration Setup
       Parameters:
@@ -43,14 +50,6 @@ Metadata:
       - pDmsTargetArn
       - pDmsReplicationArn
     - Label: 
-        default: Network Configuration
-      Parameters:
-      - AvailabilityZones
-      - EnableBastion
-      - KeyPairName
-      - RemoteAccessCIDR
-      - ExistingSecurityGroupId
-    - Label: 
         default: AWS Quick Start configuration 
       Parameters:
       - QSS3BucketName
@@ -80,8 +79,6 @@ Metadata:
         default: Create Sample?
       pMigNotify:
         default: Notification Email
-      ExistingSecurityGroupId:
-        default: Existing Security Group ID
       pTaskName:
         default: Task Name
       pDmsSourceArn:
@@ -117,7 +114,7 @@ Metadata:
       TargetUser:
         default: Target DB User
       AvailabilityZones:
-        default: Availanility Zones
+        default: Availability Zones
       KeyPairName:
         default: Key Pair Name
       RemoteAccessCIDR:
@@ -165,7 +162,7 @@ Parameters:
     Default: db.r5.large
   pCreateSample:
     Type: String
-    Description: Please choose this option if you want to populate source database
+    Description: Please choose this option if you want to populate source database and do a sample migration from Oracle to Aurora PostgreSQL
     AllowedValues:
       - 'yes'
       - 'no'
@@ -179,28 +176,24 @@ Parameters:
     Default: 'no'
   pMigNotify:
     Type: String
-    Description: This email will get notifications on Migration Status
-  ExistingSecurityGroupId:
-    Type: String
-    Description:  Existing Security group used by the framework. Please ensure that this has access to RDS endpoint and DMS replication instance
-    Default: '' 
+    Description: This email will get notifications on migration status
   pTaskName:
     Type: String
     Description: Name of DMS task. If left empty, stack name will be used.
     Default: ''
   pDmsSourceArn:
     Type: String
-    Description: Arn of source endpoint which was successfully tested with replication
+    Description: Arn of source endpoint which was successfully tested with replication. Must include if creating sample is 'no'
       instance
     Default: ''
   pDmsTargetArn:
     Type: String
-    Description: Arn of target endpoint which was successfully tested with replication
+    Description: Arn of target endpoint which was successfully tested with replication. Must include if creating sample is 'no'
       instance
     Default: ''
   pDmsReplicationArn:
     Type: String
-    Description: Arn of replication instance used for migration
+    Description: Arn of replication instance used for migration. Must include if creating sample is 'no' or if create replication instance is chosen as 'no'
     Default: ''
   CreateNewReplicationInstance:
     Type: String
@@ -237,8 +230,7 @@ Parameters:
     Default: '1521'
   SourceEndpointServer:
     Type: String
-    Description: (optional) Source database hostname, endpoint URL or IP address.
-      Leave empty if creating a sample is 'yes'.
+    Description: Source database hostname, endpoint URL or IP address. Leave empty if creating a sample is 'yes'.
     Default: ''
   SourceUser:
     Type: String
@@ -413,7 +405,7 @@ Resources:
       VpcId: !GetAtt VPCStack.Outputs.VPCID
       Tags:
       - Key: Name
-        Value: !Sub CustomSGGroup-${AWS::StackName}
+        Value: !Sub SampleSGGroup-${AWS::StackName}
     
   SampleSecurityGroupIngress:
     Condition: CreateSample
@@ -424,6 +416,29 @@ Resources:
       Description: 'Self Reference'
     Type: 'AWS::EC2::SecurityGroupIngress'
 
+   VPCSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Allow access to entire VPC"
+      SecurityGroupEgress:
+        -
+          CidrIp: 0.0.0.0/0
+          FromPort: -1
+          IpProtocol: '-1'
+          ToPort: -1
+      VpcId: !GetAtt VPCStack.Outputs.VPCID
+      Tags:
+      - Key: Name
+        Value: !Sub SampleSGGroup-${AWS::StackName}
+    
+  VPCSecurityGroupIngress:
+    Condition: CreateSample
+    Properties:
+      GroupId: !GetAtt 'VPCSecurityGroup.GroupId'
+      IpProtocol: '-1'
+      SourceSecurityGroupId: !Ref VPCSecurityGroup
+      Description: 'Self Reference'
+    Type: 'AWS::EC2::SecurityGroupIngress'
 
   AuroraStack:
     Condition: CreateSample
@@ -450,7 +465,7 @@ Resources:
         pTaskName: !Ref pTaskName
         pCodeBuildVPC: !GetAtt VPCStack.Outputs.VPCID
         pCodeBuildSubnet: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
-        pCodeBuildSecurityGroup: !If [CreateSample, !GetAtt 'SampleSecurityGroup.GroupId', !Ref ExistingSecurityGroupId]
+        pCodeBuildSecurityGroup: !If [CreateSample, !GetAtt 'SampleSecurityGroup.GroupId', !Ref VPCSecurityGroup]
         pS3BucketName: !If [CreateSample, !Ref S3Bucket, !Ref pS3BucketName]
         pS3BucketKey: 
           !If 
@@ -499,7 +514,7 @@ Resources:
         ReplInstanceArn: !Ref pDmsReplicationArn
         PrivateSubnet1: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
         PrivateSubnet2: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
-        SecurityGroup: !If [CreateSample, !GetAtt 'SampleSecurityGroup.GroupId', !Ref ExistingSecurityGroupId]
+        SecurityGroup:  !GetAtt 'SampleSecurityGroup.GroupId', !Ref VPCSecurityGroup]
         MultiAz: !Ref DmsMultiAz
         InstanceType: !Ref DmsInstanceType
         PublicAccess: !Ref DmsPublicAccess
