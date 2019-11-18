@@ -166,7 +166,7 @@ Parameters:
     AllowedValues:
       - 'yes'
       - 'no'
-    Default: 'yes'
+    Default: 'no'
   pFullLoadOnly:
     Type: String
     Description: This is for task to do only full loads and not CDC

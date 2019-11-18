@@ -1,5 +1,9 @@
 [
   {
+    "ParameterKey": "pCreateSample",
+    "ParameterValue": "yes"
+  },
+  {
     "ParameterKey": "AvailabilityZones",
     "ParameterValue": "$[taskcat_genaz_2]"
   },
