@@ -5,7 +5,12 @@ Metadata:
     - Label: 
         default: Network Configuration
       Parameters:
-      - AvailabilityZones
+      - VPCID
+      - PrivateSubnet1ID
+      - PrivateSubnet2ID
+      - PublicSubnet1ID
+      - PublicSubnet2ID
+      - ExistingSgID
       - EnableBastion
       - KeyPairName
       - RemoteAccessCIDR
@@ -113,6 +118,18 @@ Metadata:
         default: Target DB Server
       TargetUser:
         default: Target DB User
+      VPCID:
+        default: VPC ID
+      PrivateSubnet1ID:
+        default: Private subnet 1 ID
+      PrivateSubnet2ID:
+        default: Private subnet 2 ID
+      PublicSubnet1ID:
+        default: Public subnet 1 ID
+      PublicSubnet2ID:
+        default: Public subnet 2 ID
+      ExistingSgID:
+        default: Security group ID
       AvailabilityZones:
         default: Availability Zones
       KeyPairName:
@@ -166,7 +183,7 @@ Parameters:
     AllowedValues:
       - 'yes'
       - 'no'
-    Default: 'no'
+    Default: 'yes'
   pFullLoadOnly:
     Type: String
     Description: This is for task to do only full loads and not CDC
@@ -271,13 +288,25 @@ Parameters:
     Type: String
     Description: Target database user name
     Default: ''
-  AvailabilityZones:
-   Description: >-
-      List of Availability Zones to use for the subnets in the VPC. Only two
-      Availability Zones are used for this deployment, and the logical order of
-      your selections is preserved.
-   Type: 'List<AWS::EC2::AvailabilityZone::Name>'
-  KeyPairName:
+  VPCID:
+    Description: The ID of your existing VPC (e.g., vpc-0343606e).
+    Type: 'AWS::EC2::VPC::Id'
+  PrivateSubnet1ID:
+    Description: The ID of the private subnet in Availability Zone 1 in your existing VPC (e.g., subnet-a0246dcd).
+    Type: 'AWS::EC2::Subnet::Id'
+  PrivateSubnet2ID:
+    Description: The ID of the private subnet in Availability Zone 2 in your existing VPC (e.g., subnet-a0246dcd).
+    Type: 'AWS::EC2::Subnet::Id'
+  PublicSubnet1ID:
+    Description: The ID of the public subnet in Availability Zone 1 in your existing VPC (e.g., subnet-a0246dcd).
+    Type: 'AWS::EC2::Subnet::Id'
+  PublicSubnet2ID:
+    Description: The ID of the public subnet in Availability Zone 2 in your existing VPC (e.g., subnet-a0246dcd).
+    Type: 'AWS::EC2::Subnet::Id'
+  ExistingSgID:
+    Description: The security group ID in your existing VPC (e.g., sg-7f16e910) which has access to source and target databases. It should also be self-referenced.
+    Type: 'AWS::EC2::SecurityGroup::Id'
+  KeyPairName: 
     ConstraintDescription: "Name of an existing EC2 key pair."
     Description: Name of an existing public/private key pair, for connecting to your instance.
     Type: "AWS::EC2::KeyPair::KeyName"
@@ -355,17 +384,6 @@ Conditions:
     !Or [!Equals [!Ref CreateNewReplicationInstance, 'yes'], Condition: CreateSample]
 Resources:
 
-  VPCStack:
-    Type: 'AWS::CloudFormation::Stack'
-    DependsOn: CopyFiles
-    Properties:
-      TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-aws-vpc/templates/aws-vpc.template
-      Parameters:
-        AvailabilityZones: !Join
-          - ','
-          - !Ref AvailabilityZones
-        NumberOfAZs: '2'
-
   BastionStack:
     Condition: CreateBastion
     Type: 'AWS::CloudFormation::Stack'
@@ -375,10 +393,10 @@ Resources:
 
       Parameters:
         KeyPairName: !Ref KeyPairName
-        PublicSubnet1ID: !GetAtt VPCStack.Outputs.PublicSubnet1ID
-        PublicSubnet2ID: !GetAtt VPCStack.Outputs.PublicSubnet2ID
+        PublicSubnet1ID: !Ref PublicSubnet1ID
+        PublicSubnet2ID: !Ref PublicSubnet2ID
         RemoteAccessCIDR: !Ref RemoteAccessCIDR
-        VPCID: !GetAtt VPCStack.Outputs.VPCID
+        VPCID: !Ref VPCID
   
   SampleSecurityGroup:
     Condition: CreateSample
@@ -415,30 +433,7 @@ Resources:
       SourceSecurityGroupId: !Ref SampleSecurityGroup
       Description: 'Self Reference'
     Type: 'AWS::EC2::SecurityGroupIngress'
-
-  VPCSecurityGroup:
-    Type: "AWS::EC2::SecurityGroup"
-    Properties:
-      GroupDescription: "Allow access to entire VPC"
-      SecurityGroupEgress:
-        -
-          CidrIp: 0.0.0.0/0
-          FromPort: -1
-          IpProtocol: '-1'
-          ToPort: -1
-      VpcId: !GetAtt VPCStack.Outputs.VPCID
-      Tags:
-      - Key: Name
-        Value: !Sub SampleSGGroup-${AWS::StackName}
     
-  VPCSecurityGroupIngress:
-    Condition: CreateSample
-    Properties:
-      GroupId: !GetAtt 'VPCSecurityGroup.GroupId'
-      IpProtocol: '-1'
-      SourceSecurityGroupId: !Ref VPCSecurityGroup
-      Description: 'Self Reference'
-    Type: 'AWS::EC2::SecurityGroupIngress'
 
   AuroraStack:
     Condition: CreateSample
@@ -465,7 +460,7 @@ Resources:
         pTaskName: !Ref pTaskName
         pCodeBuildVPC: !GetAtt VPCStack.Outputs.VPCID
         pCodeBuildSubnet: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
-        pCodeBuildSecurityGroup: !If [CreateSample, !GetAtt 'SampleSecurityGroup.GroupId', !Ref VPCSecurityGroup]
+        pCodeBuildSecurityGroup: !If [CreateSample, !GetAtt 'SampleSecurityGroup.GroupId', !Ref ExistingSgID]
         pS3BucketName: !If [CreateSample, !Ref S3Bucket, !Ref pS3BucketName]
         pS3BucketKey: 
           !If 
@@ -514,7 +509,7 @@ Resources:
         ReplInstanceArn: !Ref pDmsReplicationArn
         PrivateSubnet1: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
         PrivateSubnet2: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
-        SecurityGroup: !If [CreateSample, !GetAtt 'SampleSecurityGroup.GroupId', !Ref VPCSecurityGroup]
+        SecurityGroup: !If [CreateSample, !GetAtt 'SampleSecurityGroup.GroupId', !Ref ExistingSgID]
         MultiAz: !Ref DmsMultiAz
         InstanceType: !Ref DmsInstanceType
         PublicAccess: !Ref DmsPublicAccess

@@ -65,6 +65,10 @@ Metadata:
         default: RDS Endpoint
       pRDSName:
         default: Database Name
+      pRDSUser:
+        default: Database Username
+      pRDSPassword:
+        default: Database Password
       pSourceRDSPassword:
         default: Source Database Password
       pSourceRDSEndpoint:
@@ -507,6 +511,7 @@ Resources:
       Value: !Ref pRDSPassword
   rSourceRdsPassword:
     Type: 'AWS::SSM::Parameter'
+    Condition : cCreateSource
     Properties:
       Description: SSM Parameter for Source RDS Password.
       Name: !Sub 'DMS-${AWS::StackName}-source'
@@ -554,7 +559,7 @@ Resources:
                 Effect: Allow
                 Resource:
                   - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${rApplicationpRdsPassword}
-                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${rSourceRdsPassword}
+                  - !If [cCreateSource, !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${rSourceRdsPassword}', !Ref 'AWS::NoValue']
               - Action:
                   - 'sns:GetTopicAttributes'
                   - 'sns:Subscribe'
