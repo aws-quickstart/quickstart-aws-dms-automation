@@ -13,7 +13,7 @@
   },
   {
     "ParameterKey": "SampleDbPassword",
-    "ParameterValue": "$[taskcat_genpass_9S]"
+    "ParameterValue": "$[taskcat_genpass_9A]"
   },
   {
     "ParameterKey": "QSS3BucketName",
