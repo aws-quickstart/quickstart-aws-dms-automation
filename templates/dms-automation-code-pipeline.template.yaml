@@ -488,10 +488,13 @@ Resources:
               commands:
                 - git clone https://github.com/aws-samples/aws-database-migration-samples.git
                 - cd aws-database-migration-samples/oracle/sampledb/v1
+                - echo "drop index dms_sample.set_ev_id_tkholder_id_idx;" >> install-rds.sql
+                - echo "create index dms_sample.set_ev_id_tkholder_id_idx on dms_sample.sporting_event_ticket(sporting_event_id,ticketholder_id);" >> install-rds.sql
+                - echo "drop index dms_sample.se_start_date_fcn;" >> install-rds.sql
+                - echo "create index dms_sample.se_start_date_fcn on dms_sample.sporting_event(start_date_time);" >> install-rds.sql
+                - echo "alter table dms_sample.sport_location modify (id number);" >> install-rds.sql
                 - echo "exit;" >> install-rds.sql
                 - sqlplus $DB_USER/$DB_PASSWORD@$DB_HOST/$DB_NAME @install-rds.sql
-                - wget https://raw.githubusercontent.com/nagmesh/aws-database-migration-samples/master/oracle/sampledb/v1/schema/fix.sql
-                - sqlplus $DB_USER/$DB_PASSWORD@$DB_HOST/$DB_NAME @fix.sql
       Tags:
         - Key: Created by
           Value: !Sub ${AWS::StackName}
