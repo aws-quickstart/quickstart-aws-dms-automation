@@ -18,12 +18,12 @@ global:
 #    - us-west-2
   reporting: true
 
-projects:
-  name: qs-dms-automation
-  parameter_input: quickstart-dms-automation-params.json
-  template_file: dms-automation-master.template.yaml
+# projects:
+#   name: qs-dms-automation
+#   parameter_input: quickstart-dms-automation-params.json
+#   template_file: dms-automation-master.template.yaml
  
-#tests:
-#  vpc:
-#    parameter_input: quickstart-dms-automation-params.json
-#    template_file: dms-automation-master.template.yaml
+tests:
+ vpc:
+   parameter_input: quickstart-dms-automation-params.json
+   template_file: dms-automation-master.template.yaml
