@@ -24,6 +24,6 @@ global:
 #   template_file: dms-automation-master.template.yaml
  
 tests:
- vpc:
+ dms-vpc:
    parameter_input: quickstart-dms-automation-params.json
    template_file: dms-automation-master.template.yaml
