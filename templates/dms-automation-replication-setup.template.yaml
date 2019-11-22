@@ -200,6 +200,100 @@ Conditions:
     - 'yes'
 
 Resources:
+  
+  CheckDmsIam:
+    Type: Custom::DmsIam
+    Condition: CreateReplicationInstance
+    Properties:
+      ServiceToken: !GetAtt CheckDmsTaskRolesFunc.Arn
+
+  CheckDmsTaskRoles:
+    Condition: CreateReplicationInstance
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      Path: /
+      Policies:
+        - PolicyName: dms-iam-access
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'iam:GetRole'
+                  - 'iam:CreateRole'
+                  - 'iam:AttachRolePolicy'
+                Resource: !Sub 'arn:aws:iam::${AWS::AccountId}:role/dms*'
+  CheckDmsTaskRolesFunc:
+    Condition: CreateReplicationInstance
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Description: Checks the IAM role for DMS and creates them if they dont exist
+      Handler: index.lambda_handler
+      Runtime: python3.7
+      Role: !GetAtt CheckDmsTaskRoles.Arn
+      Timeout: 900
+      Code:
+        ZipFile: |
+          import cfnresponse
+          import json
+          import boto3
+          import botocore
+          # import cfnresponse
+
+          iam = boto3.client('iam')
+          roles = ['dms-vpc-role','dms-cloudwatch-logs-role']
+          assume_doc = {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "",
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": "dms.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole"
+              }
+            ]
+          }
+
+          def lambda_handler(event, context):
+            try:
+              if event['RequestType'] == 'Create':
+                for role_name in roles:
+                  try:
+                    role = iam.get_role(RoleName=role_name)
+                  except botocore.exceptions.ClientError as e:
+                    if e.response['Error']['Code'] == 'NoSuchEntity':
+                      print(role_name + ' role does not exist. Creating them now')
+                      create_role = iam.create_role(RoleName=role_name,AssumeRolePolicyDocument=json.dumps(assume_doc))
+                    else: 
+                      cfnresponse.send(event, context, cfnresponse.FAILED, {}, '')
+                  try:
+                    if role_name == 'dms-vpc-role':
+                      policy1 = iam.attach_role_policy(RoleName = role_name,PolicyArn = 'arn:aws:iam::aws:policy/service-role/AmazonDMSVPCManagementRole')
+                    elif role_name == 'dms-cloudwatch-logs-role':
+                      policy2 = iam.attach_role_policy(RoleName = role_name,PolicyArn = 'arn:aws:iam::aws:policy/service-role/AmazonDMSCloudWatchLogsRole')
+                  except Exception as e:
+                    print(e)
+                    cfnresponse.send(event, context, cfnresponse.FAILED, {}, '')
+                cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
+              elif (event['RequestType'] == 'Delete') or (event['RequestType'] == 'Update'):
+                print('nothing will be done')
+                cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
+            except Exception as e:
+              print(e)
+              cfnresponse.send(event, context, cfnresponse.FAILED, {}, '')
+
+  
   ReplicationInstance:
     Condition: CreateReplicationInstance
     Properties:
@@ -254,6 +348,7 @@ Resources:
       Username: !Ref TargetUser
   ReplicationSubnetGroup:
     Condition: CreateReplicationInstance
+    DependsOn: CheckDmsIam
     Properties:
       ReplicationSubnetGroupDescription: DMS Automation Subnets
       SubnetIds:
