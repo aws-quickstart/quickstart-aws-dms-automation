@@ -475,7 +475,7 @@ Resources:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-replication-setup.template.yaml
       Parameters:
         CreateNewReplicationInstance: !If [CreateSample, 'yes', !Ref CreateNewReplicationInstance]
-        ReplInstanceArn: !If [CreateReplicationInst,!Ref 'AWS::NoValue', !Ref pDmsReplicationArn]
+        ReplInstanceArn: !If [CreateReplicationInst,!Ref 'AWS::NoValue', !Ref 'AWS::NoValue']
         PrivateSubnet1: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
         PrivateSubnet2: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
         SecurityGroup: !If [CreateSample, !GetAtt 'SampleSecurityGroup.GroupId', !Ref VPCSecurityGroup]
