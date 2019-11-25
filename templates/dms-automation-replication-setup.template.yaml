@@ -289,7 +289,7 @@ Resources:
     Properties:
       EngineVersion: !Ref EngineVersion
       MultiAZ: !Ref MultiAz
-      PubliclyAccessible: 'false'
+      PubliclyAccessible: false
       ReplicationInstanceClass: !Ref InstanceType
       ReplicationSubnetGroupIdentifier: !Ref ReplicationSubnetGroup
       Tags:
