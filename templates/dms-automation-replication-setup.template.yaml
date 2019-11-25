@@ -16,7 +16,6 @@ Metadata:
           - SecurityGroup
           - InstanceType
           - EngineVersion
-          - PublicAccess
           - MultiAz
       - Label:
           default: Source Database Configuration
@@ -71,8 +70,6 @@ Metadata:
         default: Instance Type
       MultiAz:
         default: Enable MultiAZ
-      PublicAccess:
-        default: Allow Public Access
       SecurityGroup:
         default: Security Group
       PrivateSubnet1:
@@ -118,13 +115,6 @@ Parameters:
       - 'false'
     Default: 'false'
     Description: Enable MultiAZ
-    Type: String
-  PublicAccess:
-    AllowedValues:
-      - 'true'
-      - 'false'
-    Default: 'false'
-    Description: Publicly Accessible
     Type: String
   SecurityGroup:
     Description: 'Security group ID for DMS replication instance (e.g., sg-1234abcd)'
@@ -299,7 +289,7 @@ Resources:
     Properties:
       EngineVersion: !Ref EngineVersion
       MultiAZ: !Ref MultiAz
-      PubliclyAccessible: !Ref PublicAccess
+      PubliclyAccessible: 'false'
       ReplicationInstanceClass: !Ref InstanceType
       ReplicationSubnetGroupIdentifier: !Ref ReplicationSubnetGroup
       Tags:
