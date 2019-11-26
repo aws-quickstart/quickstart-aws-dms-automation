@@ -3,7 +3,7 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
     - Label: 
-        default: Network Configuration
+        default: Network configuration
       Parameters:
       - VPCID
       - PrivateSubnet1ID
@@ -15,7 +15,7 @@ Metadata:
       - KeyPairName
       - RemoteAccessCIDR
     - Label:
-        default: Migration Setup
+        default: Migration setup
       Parameters:
       - pCreateSample
       - CreateNewReplicationInstance
@@ -27,14 +27,13 @@ Metadata:
       - pS3BucketName
       - pS3BucketKey
     - Label:
-        default: DMS Configuration for New Replication Instance
+        default: AWS DMS configuration for new replication instance
       Parameters:
         - DmsEngineVersion
         - DmsInstanceType
         - DmsMultiAz
-        - DmsPublicAccess
     - Label: 
-        default: DMS Configuration for New Endpoints
+        default: AWS DMS configuration for new endpoints
       Parameters:
       - SourceDBName
       - SourceEngine
@@ -49,7 +48,7 @@ Metadata:
       - TargetEndpointServer
       - TargetUser
     - Label: 
-        default: DMS Configuration for Existing Endpoints and Replication Instance
+        default: AWS DMS configuration for existing endpoints and replication instance
       Parameters:
       - pDmsSourceArn
       - pDmsTargetArn
@@ -63,61 +62,59 @@ Metadata:
     # Parameter Labels
     ParameterLabels:
       pS3BucketName:
-        default: Migration Bucket Name
+        default: Migration bucket name
       pS3BucketKey:
-        default: Migration Bucket Key
+        default: Migration bucket key
       DmsEngineVersion:
-       default: Engine Version
+       default: AWS DMS Engine version
       DmsInstanceType:
-        default: Instance Type
+        default: Instance type
       DmsMultiAz:
-        default: Multi AZ?
-      DmsPublicAccess:
-        default: Public Access?
+        default: Multi AZ
       SampleDbPassword:
-        default: Sample DB Password
+        default: Sample DB password
       DBInstanceClass:
-        default: Sample DB Instance Class
+        default: Sample DB instance class
       pFullLoadOnly:
-        default: Full Load Only?
+        default: Full load only
       pCreateSample:
-        default: Create Sample?
+        default: Create sample
       pMigNotify:
-        default: Notification Email
+        default: Notification email
       pTaskName:
         default: Task Name
       pDmsSourceArn:
-        default: DMS Source Endpoint Arn
+        default: AWS DMS source endpoint ARN
       pDmsTargetArn:
-        default: DMS Target Endpoint Arn
+        default: AWS DMS target endpoint ARN
       pDmsReplicationArn:
-        default: DMS Replication Instance Endpoint Arn
+        default: AWS DMS replication instance endpoint ARN
       CreateNewReplicationInstance:
-        default: Create New Replication Instance?
+        default: Create new replication instance?
       SourceDBName:
-        default: Source DB Name
+        default: Source DB name
       SourceEngine:
-        default: Source DB Engine
+        default: Source DB engine
       SourcePassword:
-        default: Source DB Password
+        default: Source DB password
       SourcePort:
-        default: Source DB Port
+        default: Source DB port
       SourceEndpointServer:
-        default: Source DB Server
+        default: Source DB server
       SourceUser:
-        default: Source User
+        default: Source user
       TargetDBName:
-        default: Target DB Name
+        default: Target DB name
       TargetEngine:
-        default: Target DB Engine
+        default: Target DB engine
       TargetPassword:
-        default: Target DB Password
+        default: Target DB password
       TargetPort:
-        default: Target DB Port
+        default: Target DB port
       TargetEndpointServer:
-        default: Target DB Server
+        default: Target DB server
       TargetUser:
-        default: Target DB User
+        default: Target DB user
       VPCID:
         default: VPC ID
       PrivateSubnet1ID:
@@ -133,11 +130,11 @@ Metadata:
       AvailabilityZones:
         default: Availability Zones
       KeyPairName:
-        default: Key Pair Name
+        default: Key pair name
       RemoteAccessCIDR:
         default: Remote Access CIDR
       EnableBastion:
-        default: Enable Bastion?
+        default: Enable bastion
       QSS3BucketName:
         default: Quickstart S3 Bucket Name
       QSS3KeyPrefix:
@@ -146,22 +143,22 @@ Parameters:
   pS3BucketName:
     Type: String
     Default: ''
-    Description: S3 bucket name which has all the zip files necessary for migration. Leave blank if creating a sample.
+    Description: The name of the S3 bucket that contains all the zip files necessary for the migration. Leave this blank if you are deploying in sample mode.
   pS3BucketKey:
     Type: String
     Default: ''
-    Description: S3 bucket key which has all the zip files necessary for migration. Leave blank if creating a sample.
+    Description: S3 bucket key which has all the zip files necessary for migration. Leave this blank if you are deploying in sample mode.
   SampleDbPassword:
     AllowedPattern: "(?=^.{6,255}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*"
     ConstraintDescription: "Min 8 chars. Must include 1 uppercase, 1 lowercase, 1 number, 1 (non / @ \" ') symbol"
-    Description: "The database admin account password. Min 8 chars. Must include 1 uppercase, 1 lowercase, 1 number, 1 (non / @ \" ') symbol"
+    Description: "The database admin account password. The password must have a minimum of 8 characters and must include 1 uppercase letter, 1 lowercase letter, 1 number, and 1 (non / @ \" ') symbol."
     MaxLength: "64"
     MinLength: "8"
     NoEcho: "True"
     Type: String
   DBInstanceClass:
     Type: String
-    Description: Please specify the DB instance size that you want to create for your sample
+    Description: The instance size of the source database that will host the sample data. 
     AllowedValues:
       - db.r5.large
       - db.r5.xlarge
@@ -179,38 +176,37 @@ Parameters:
     Default: db.r5.large
   pCreateSample:
     Type: String
-    Description: Please choose this option if you want to populate source database and do a sample migration from Oracle to Aurora PostgreSQL
+    Description: Population of a source database and a sample migration from Oracle to Aurora PostgreSQL. Choose no if you are deploying in production mode.
     AllowedValues:
       - 'yes'
       - 'no'
-    Default: 'yes'
+    Default: 'no'
   pFullLoadOnly:
     Type: String
-    Description: This is for task to do only full loads and not CDC
+    Description: Full-load migration. Choose yes if the migration does not include CDC.
     AllowedValues:
       - 'yes'
       - 'no'
     Default: 'no'
   pMigNotify:
     Type: String
-    Description: This email will get notifications on migration status
+    Description: The email address that receives notifications on the migration status.
   pTaskName:
     Type: String
-    Description: Name of DMS task. If left empty, stack name will be used.
+    Description: The name of the AWS DMS task. If left empty, the stack name is used.
     Default: ''
   pDmsSourceArn:
     Type: String
-    Description: Arn of source endpoint which was successfully tested with replication. Must include if creating sample is 'no'
+    Description: The Amazon Resource Name (ARN) of the source endpoint which was successfully tested with replication instance. You must provide the ARN if you are deploying in production mode.
       instance
     Default: ''
   pDmsTargetArn:
     Type: String
-    Description: Arn of target endpoint which was successfully tested with replication. Must include if creating sample is 'no'
-      instance
+    Description: The Amazon Resource Name (ARN) of the source endpoint which was successfully tested with replication instance. You must provide the ARN if you are deploying in production mode.
     Default: ''
   pDmsReplicationArn:
     Type: String
-    Description: Arn of replication instance used for migration. Must include if creating sample is 'no' or if create replication instance is chosen as 'no'
+    Description: The ARN of the replication instance that is used for the migration. You mjust include this if you are deploying in production mode or if CreateNewReplicationInstance is set to no.
     Default: ''
   CreateNewReplicationInstance:
     Type: String
@@ -218,14 +214,14 @@ Parameters:
     AllowedValues:
       - 'yes'
       - 'no'
-    Description: Please specify if you want to create new replication instance
+    Description: New replication instance. Choose no if you are planning to use an existing replication instance.
   SourceDBName:
     Type: String
-    Description: Name of the database or service name in source server. 
+    Description: The name of the database or service name on the source server. Leave this blank if you are deploying in sample mode.
     Default: ''
   SourceEngine:
     Type: String
-    Description: Database engine running on the source. 
+    Description: The database engine running on the source database.
     Default: oracle
     AllowedValues:
       - mysql
@@ -238,28 +234,28 @@ Parameters:
       - sqlserver
   SourcePassword:
     Type: String
-    Description: Source database password. 
+    Description: The password for the source database.Leave this blank if you are deploying in sample mode. 
     NoEcho: 'true'
     Default: ''
   SourcePort:
     Type: String
-    Description: Port on which the source database is running
+    Description: The port on which the source database is running.
     Default: '1521'
   SourceEndpointServer:
     Type: String
-    Description: Source database hostname, endpoint URL or IP address. Leave empty if creating a sample is 'yes'.
+    Description: The source database hostname, endpoint URL, or IP address. Leave this blank if you are deploying in sample mode. Leave this blank if you are deploying in sample mode.
     Default: ''
   SourceUser:
     Type: String
-    Description: Source database user name
+    Description: The user name for accessing the source database.. Leave this blank if you are deploying in sample mode.
     Default: ''
   TargetDBName:
     Type: String
-    Description: Name of the database in target server
+    Description: The name of the database or service name on the target server. Leave this blank if you are deploying in sample mode.
     Default: ''
   TargetEngine:
     Type: String
-    Description: Database engine running on the target
+    Description: The database engine running on the target database.
     Default: aurora-postgresql
     AllowedValues:
       - mysql
@@ -272,21 +268,20 @@ Parameters:
       - sqlserver
   TargetPassword:
     Type: String
-    Description: Target database password
+    Description: The password for the target database. Leave this blank if you are deploying in sample mode.
     NoEcho: 'true'
     Default: ''
   TargetPort:
     Type: String
-    Description: Port on which the target database is running
+    Description: The port on which the target database is running.
     Default: '5432'
   TargetEndpointServer:
     Type: String
-    Description: (optional) Target database hostname, endpoint URL or IP address.
-      Leave empty if creating a sample is 'yes'.
+    Description: The target database hostname, endpoint URL, or IP address. Leave this blank if you are deploying in sample mode. Leave this blank if you are deploying in sample mode.
     Default: ''
   TargetUser:
     Type: String
-    Description: Target database user name
+    Description: The user name for accessing the target database. Leave this blank if you are deploying in sample mode.
     Default: ''
   VPCID:
     Description: The ID of your existing VPC (e.g., vpc-0343606e).
@@ -307,7 +302,7 @@ Parameters:
     Description: The security group ID in your existing VPC (e.g., sg-7f16e910) which has access to source and target databases. It should also be self-referenced.
     Type: 'AWS::EC2::SecurityGroup::Id'
   KeyPairName: 
-    ConstraintDescription: "Name of an existing EC2 key pair."
+    ConstraintDescription: "The name of an existing public/private key pair, for connecting to your instance."
     Description: Name of an existing public/private key pair, for connecting to your instance.
     Type: "AWS::EC2::KeyPair::KeyName"
   RemoteAccessCIDR:
@@ -321,7 +316,7 @@ Parameters:
       - "true"
       - "false"
     Default: "false"
-    Description: "If true, a bastion stack will be created."
+    Description: "Bastion host deployment. Choose false if the existing public subnets already contain a bastion host."
     Type: String
   QSS3BucketName:
     AllowedPattern: "^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$"
@@ -338,7 +333,7 @@ Parameters:
   DmsEngineVersion: 
     Default: 3.1.3
     Type: String
-    Description: DMS Replication Engine Version
+    Description: AWS DMS replication engine version.
     AllowedValues:
       - 3.1.3
       - 2.4.5
@@ -347,7 +342,7 @@ Parameters:
   DmsInstanceType:
     Default: dms.c4.large
     Type: String
-    Description: DMS Replication Instance Size
+    Description: AWS DMS replication instance size.
     AllowedValues:
       - dms.t2.micro
       - dms.t2.small
@@ -358,20 +353,12 @@ Parameters:
       - dms.c4.2xlarge
       - dms.c4.4xlarge
   DmsMultiAz: 
-    Default: 'false'
+    Default: 'true'
     Type: String
-    Description: DMS Replication Instance Multi AZ
+    Description: AWS DMS replication instance deployment across multiple Availability Zones.
     AllowedValues:
       - 'true'
       - 'false'
-  DmsPublicAccess: 
-    Default: 'false'
-    Type: String
-    Description: DMS Replication Instance Public Access
-    AllowedValues:
-      - 'true'
-      - 'false'
-
       
     
 Conditions:
@@ -512,7 +499,6 @@ Resources:
         SecurityGroup: !If [CreateSample, !GetAtt 'SampleSecurityGroup.GroupId', !Ref ExistingSgID]
         MultiAz: !Ref DmsMultiAz
         InstanceType: !Ref DmsInstanceType
-        PublicAccess: !Ref DmsPublicAccess
         EngineVersion: !Ref DmsEngineVersion
         SourceDBName: !If [CreateSample, 'ORCL' , !Ref SourceDBName]
         SourceEngine: !If [CreateSample, 'oracle' , !Ref SourceEngine]

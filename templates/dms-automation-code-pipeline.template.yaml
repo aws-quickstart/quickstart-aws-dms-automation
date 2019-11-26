@@ -305,7 +305,7 @@ Resources:
                 - codepipeline.amazonaws.com
         Version: 2012-10-17
       Policies:
-        - PolicyName: !Sub 'codepipeline-${AWS::StackName}-${AWS::Region}-policy'
+        - PolicyName: 'codepipeline-policy'
           PolicyDocument:
             Statement:
               - Action:
@@ -360,7 +360,6 @@ Resources:
             Value: !Ref rMigNotify
         Image: 'aws/codebuild/standard:1.0'
         Type: LINUX_CONTAINER
-      Name: !Sub 'Codebuild-${AWS::StackName}-setupTarget'
       ServiceRole: !GetAtt
         - rCodeBuildServiceRole
         - Arn
@@ -409,7 +408,6 @@ Resources:
             Value: !If [cTaskName, !Ref 'AWS::StackName', !Ref pTaskName]
         Image: 'aws/codebuild/standard:1.0'
         Type: LINUX_CONTAINER
-      Name: !Sub 'Codebuild-${AWS::StackName}-preCDC'
       ServiceRole: !GetAtt
         - rCodeBuildServiceRole
         - Arn
@@ -456,7 +454,6 @@ Resources:
 
         Image: 'aws/codebuild/standard:1.0'
         Type: LINUX_CONTAINER
-      Name: !Sub 'Codebuild-${AWS::StackName}-Source'
       ServiceRole: !GetAtt
         - rCodeBuildServiceRole
         - Arn
@@ -981,6 +978,7 @@ Resources:
                   - 'codebuild:StopBuild'
                   - 'codebuild:BatchDeleteBuilds'
                   - 'codebuild:ListBuildsForProject'
+                  - 'codebuild:BatchGetBuilds'
                 Resource: 
                   - !Sub 'arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/${rApplicationCodeBuild}'
                   - !If [cCreateSource, !Sub 'arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/${rSampleCodeBuild}', !Ref 'AWS::NoValue']

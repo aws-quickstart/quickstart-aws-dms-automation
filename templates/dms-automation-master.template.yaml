@@ -3,7 +3,7 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
     - Label: 
-        default: Network Configuration
+        default: Network configuration
       Parameters:
       - AvailabilityZones
       - EnableBastion
@@ -22,13 +22,13 @@ Metadata:
       - pS3BucketName
       - pS3BucketKey
     - Label:
-        default: DMS Configuration for New Replication Instance
+        default: AWS DMS configuration for new replication instance
       Parameters:
         - DmsEngineVersion
         - DmsInstanceType
         - DmsMultiAz
     - Label: 
-        default: DMS Configuration for New Endpoints
+        default: AWS DMS configuration for new endpoints
       Parameters:
       - SourceDBName
       - SourceEngine
@@ -475,7 +475,7 @@ Resources:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-replication-setup.template.yaml
       Parameters:
         CreateNewReplicationInstance: !If [CreateSample, 'yes', !Ref CreateNewReplicationInstance]
-        ReplInstanceArn: !If [CreateReplicationInst,!Ref 'AWS::NoValue', !Ref 'AWS::NoValue']
+        ReplInstanceArn: !If [CreateSample, '', !Ref 'AWS::NoValue']
         PrivateSubnet1: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
         PrivateSubnet2: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
         SecurityGroup: !If [CreateSample, !GetAtt 'SampleSecurityGroup.GroupId', !Ref VPCSecurityGroup]
