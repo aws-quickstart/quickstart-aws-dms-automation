@@ -1,0 +1,18 @@
+project:
+  name: quickstart-aws-dms-automation
+  owner: nagmeshk@amazon.com
+  package_lambda: false
+  regions:
+  - us-east-1
+tests:
+  dms-vpc:
+    parameters:
+      AvailabilityZones: $[taskcat_genaz_2]
+      KeyPairName: aws_keypair
+      QSS3BucketName: $[taskcat_autobucket]
+      SampleDbPassword: $[taskcat_genpass_8S]
+      pCreateSample: 'yes'
+      pMigNotify: test@example.com
+    regions:
+    - us-east-1
+    template: templates/dms-automation-master.template.yaml
