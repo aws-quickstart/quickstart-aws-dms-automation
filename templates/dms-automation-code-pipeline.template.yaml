@@ -539,7 +539,7 @@ Resources:
                   - 'logs:PutLogEvents'
                 Effect: Allow
                 Resource:
-                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/Codebuild-${AWS::StackName}*
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*
               - Action:
                   - 's3:PutObject'
                   - 's3:GetObject'
