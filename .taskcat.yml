@@ -10,7 +10,7 @@ tests:
       AvailabilityZones: $[taskcat_genaz_2]
       KeyPairName: aws_keypair
       QSS3BucketName: $[taskcat_autobucket]
-      SampleDbPassword: $[taskcat_genpass_8S]
+      SampleDbPassword: Password1!
       pCreateSample: 'yes'
       pMigNotify: test@example.com
     regions:
