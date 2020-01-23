@@ -462,7 +462,7 @@ Resources:
       ServiceToken: !GetAtt
         - CleanupVpcFunction
         - Arn
-      SecurityGroup: !Ref SG
+      SecurityGroup: !GetAtt 'SampleSecurityGroup.GroupId'
   
   CleanupVpcFunction:
     Type: 'AWS::Lambda::Function'
