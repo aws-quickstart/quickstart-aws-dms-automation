@@ -457,7 +457,12 @@ Resources:
         
   CleanupVpc:
     Type: 'Custom::CleanupVpc'
-    # Condition: CreateSample
+    DependsOn:
+      - DMSReplicationStack
+      - DMSSampleSourceSetup
+      - AuroraStack
+      - BastionStack
+      - DMSCodePiplineStack
     Properties:
       ServiceToken: !GetAtt
         - CleanupVpcFunction
