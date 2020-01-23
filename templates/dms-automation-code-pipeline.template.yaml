@@ -6,174 +6,172 @@ Metadata:
       - Label:
           default: Database Migration Service Endpoints
         Parameters:
-          - pDmsSourceArn
-          - pDmsTargetArn
-          - pDmsReplicationArn
-          - pTaskName
-          - pFullLoadOnly
+          - DmsSourceArn
+          - DmsTargetArn
+          - DmsReplicationArn
+          - TaskName
+          - FullLoadOnly
       - Label:
           default: Target RDS Access and Credentials
         Parameters:
-          - pRDSEndpoint
-          - pRDSName
-          - pRDSUser
-          - pRDSPassword
+          - TargetEndpoint
+          - TargetDbName
+          - TargetDbUser
+          - TargetDbPassword
       - Label:
-          default: Sample Source RDS Access and Credentials
+          default: Source RDS Access and Credentials (optional)
         Parameters:
-          - pCreateSample
-          - pSourceRDSEndpoint
-          - pSourceRDSName
-          - pSourceRDSUser
-          - pSourceRDSPassword
+          - CreateSample
+          - SourceEndpoint
+          - SourceDbName
+          - SourceDbUser
+          - SourceDbPassword
 
       - Label:
           default: CodeBuild Configuration and Environment
         Parameters:
-          - pCodeBuildSecurityGroup
-          - pCodeBuildSubnet
-          - pCodeBuildVPC
+          - CodeBuildSecurityGroup
+          - CodeBuildSubnet
+          - CodeBuildVpc
       - Label:
           default: CodePipeline Source Configuration
         Parameters:
-          - pS3BucketName
-          - pS3BucketKey
+          - S3BucketName
+          - S3BucketKey
       - Label:
           default: Migration Notifications
         Parameters:
-          - pMigNotify
+          - MigNotify
     ParameterLabels:
-      pCreateSample:
+      CreateSample:
         default: Create Sample Source?
-      pFullLoadOnly:
+      FullLoadOnly:
         default: Full Load Only?
-      pMigNotify:
+      MigNotify:
         default: Email address
-      pTaskName:
+      TaskName:
         default: DMS Task Name
-      pCodeBuildVPC:
+      CodeBuildVpc:
         default: VPC used by CodeBuild
-      pCodeBuildSubnet:
+      CodeBuildSubnet:
         default: SubnetID
-      pCodeBuildSecurityGroup:
+      CodeBuildSecurityGroup:
         default: Security Group
-      pS3BucketName:
+      S3BucketName:
         default: S3 Bucket
-      pS3BucketKey:
+      S3BucketKey:
         default: S3 Key
-      pRDSEndpoint:
+      TargetEndpoint:
         default: RDS Endpoint
-      pRDSName:
+      TargetDbName:
         default: Database Name
-      pRDSUser:
+      TargetDbUser:
         default: Database Username
-      pRDSPassword:
+      TargetDbPassword:
         default: Database Password
-      pSourceRDSPassword:
+      SourceDbPassword:
         default: Source Database Password
-      pSourceRDSEndpoint:
+      SourceEndpoint:
         default: Source RDS Endpoint
-      pSourceRDSName:
+      SourceDbName:
         default: Source Database Name
-      pSourceRDSUser:
+      SourceDbUser:
         default: Source Database Username
-      pDmsSourceArn:
+      DmsSourceArn:
         default: Source Endpoint Arn
-      pDmsTargetArn:
+      DmsTargetArn:
         default: Target Endpoint Arn
-      pDmsReplicationArn:
+      DmsReplicationArn:
         default: Replication instance Arn
 Conditions:
   cTaskName: !Equals
-    - !Ref pTaskName
+    - !Ref TaskName
     - ''
   cCdc: !Equals
-    - !Ref pFullLoadOnly
+    - !Ref FullLoadOnly
     - 'no'
   cCreateSource: !Equals
-    - !Ref pCreateSample
+    - !Ref CreateSample
     - 'yes'
 Parameters:
-  pCreateSample:
+  CreateSample:
     Type: String
     Description: Please choose this option if you want to populate source database
     AllowedValues:
       - 'yes'
       - 'no'
     Default: 'no'
-  pFullLoadOnly:
+  FullLoadOnly:
     Type: String
     Description: This is for task to do only full loads and not CDC
     AllowedValues:
       - 'yes'
       - 'no'
     Default: 'no'
-  pMigNotify:
+  MigNotify:
     Type: String
     Description: This email will get notifications on Migration Status
-  pCodeBuildSecurityGroup:
+  CodeBuildSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup::Id'
     Description: Security group used by CodeBuild. Please ensure that this has access to
       RDS endpoint
-  pCodeBuildSubnet:
+  CodeBuildSubnet:
     Type: 'AWS::EC2::Subnet::Id'
 
     Description: Private subnet id with NAT gateway where codebuild will be launched
-  pCodeBuildVPC:
+  CodeBuildVpc:
     Type: 'AWS::EC2::VPC::Id'
     Description: VPC Id where codebuild will be launched. Subnet and security group should
       belong to this VPC.
-  pS3BucketKey:
+  S3BucketKey:
     Type: String
     Description: The location of file which is used as source for CodePipeline
-  pS3BucketName:
+  S3BucketName:
     Type: String
     Description: The name of the S3 bucket where the code resides. This will be used as
       source for the CodePipeline
-  pRDSEndpoint:
+  TargetEndpoint:
     Type: String
-    Description: RDS endpoint where the schema changes will take place
-  pRDSName:
+    Description: RDS Target endpoint where the schema changes will take place
+  TargetDbName:
     Type: String
-    Description: RDS database name for deployments
-  pRDSPassword:
+    Description: RDS Target database name for deployments
+  TargetDbPassword:
     Type: String
-    Description: The database user password for deployment
+    Description: RDS Target database user password for deployment
     NoEcho: 'true'
-  pRDSUser:
+  TargetDbUser:
     Type: String
-    Description: RDS database user name
-  pSourceRDSEndpoint:
+    Description: RDS Target database user name
+  SourceEndpoint:
     Type: String
-    Description: RDS endpoint where the schema changes will take place
-  pSourceRDSName:
+    Description: RDS Source endpoint where the schema changes will take place
+  SourceDbName:
     Type: String
-    Description: RDS database name for deployments
-  pSourceRDSPassword:
+    Description: RDS Source database name for deployments
+  SourceDbPassword:
     Type: String
-    Description: The database user password for deployment
+    Description: RDS Source database user password for deployment
     NoEcho: 'true'
-  pSourceRDSUser:
+  SourceDbUser:
     Type: String
-    Description: RDS database user name
-  pTaskName:
+    Description: RDS Source database user name
+  TaskName:
     Type: String
     Description: Name of DMS task. If left blank stack name will be used.
-  pDmsSourceArn:
+  DmsSourceArn:
     Type: String
-    Description: Arn of source endpoint which was successfully tested with replication
-      instance
-  pDmsTargetArn:
+    Description: DMS Arn of source endpoint
+  DmsTargetArn:
     Type: String
-    Description: Arn of source endpoint which was successfully tested with replication
-      instance
-  pDmsReplicationArn:
+    Description: DMS Arn of target endpoint 
+  DmsReplicationArn:
     Type: String
-    Description: Arn of replication instance used for migration
+    Description: DMS Replication Arn used for migration
 
 Resources:
   # create project for populating source
-  rAppPipelineEvents:
+  DmsPipelineEvents:
     Type: 'AWS::Events::Rule'
     Properties:
       Description: EventRule
@@ -186,18 +184,18 @@ Resources:
           state:
             - FAILED
           pipeline:
-            - !Ref rAppPipeline
+            - !Ref DmsPipeline
       State: ENABLED
       Targets:
-        - Arn: !Ref rMigNotify
+        - Arn: !Ref MigrationNotification
           Id: MigrationPipeline
-  rMigNotify:
+  MigrationNotification:
     Type: 'AWS::SNS::Topic'
     Properties:
       Subscription:
-        - Endpoint: !Ref pMigNotify
+        - Endpoint: !Ref MigNotify
           Protocol: email
-  rMigNotifyPolicy:
+  MigrationNotificationPolicy:
     Type: 'AWS::SNS::TopicPolicy'
     Properties:
       PolicyDocument:
@@ -208,15 +206,15 @@ Resources:
             Action: 'sns:Publish'
             Resource: '*'
       Topics:
-        - !Ref rMigNotify
-  rAppPipeline:
+        - !Ref MigrationNotification
+  DmsPipeline:
     Type: 'AWS::CodePipeline::Pipeline'
     Properties:
       ArtifactStore:
-        Location: !Ref rArtifactStoreS3Location
+        Location: !Ref ArtifactStoreS3Location
         Type: S3
       RoleArn: !GetAtt
-        - rAppPipelineRole
+        - DmsPipelineRole
         - Arn
       Stages:
         - Actions:
@@ -227,8 +225,8 @@ Resources:
                 Version: '1'
               Configuration:
                 PollForSourceChanges: true
-                S3Bucket: !Ref pS3BucketName
-                S3ObjectKey: !Ref pS3BucketKey
+                S3Bucket: !Ref S3BucketName
+                S3ObjectKey: !Ref S3BucketKey
               Name: Source
               OutputArtifacts:
                 - Name: AppSource
@@ -243,7 +241,7 @@ Resources:
                   Provider: CodeBuild
                   Version: '1'
                 Configuration:
-                  ProjectName: !Ref rSampleCodeBuild
+                  ProjectName: !Ref CodeBuildSetupSample
                 InputArtifacts:
                   - Name: AppSource
                 Name: SetupSource
@@ -257,7 +255,7 @@ Resources:
                 Provider: CodeBuild
                 Version: '1'
               Configuration:
-                ProjectName: !Ref rApplicationCodeBuild
+                ProjectName: !Ref CodeBuildSetupTarget
               InputArtifacts:
                 - Name: AppSource
               Name: SetupTarget
@@ -272,7 +270,7 @@ Resources:
                 Provider: Manual
                 Version: '1'
               Configuration:
-                NotificationArn: !Ref rSnsApproval
+                NotificationArn: !Ref SnsApproval
               Name: ApprovalForDMS
               RunOrder: 1
           Name: Approve
@@ -285,14 +283,14 @@ Resources:
                   Provider: CodeBuild
                   Version: '1'
                 Configuration:
-                  ProjectName: !Ref rApplicationCodeBuildProd
+                  ProjectName: !Ref CodeBuildPreCdc
                 InputArtifacts:
                   - Name: AppSource
                 Name: SetupTarget
                 RunOrder: 1
             Name: PreCDC
           - !Ref 'AWS::NoValue'
-  rAppPipelineRole:
+  DmsPipelineRole:
     Type: 'AWS::IAM::Role'
     Properties:
       AssumeRolePolicyDocument:
@@ -319,7 +317,7 @@ Resources:
                   - 'codebuild:StartBuild'
                 Effect: Allow
                 Resource: '*'
-  rApplicationCodeBuild:
+  CodeBuildSetupTarget:
     Type: 'AWS::CodeBuild::Project'
     Properties:
       Artifacts:
@@ -330,38 +328,38 @@ Resources:
         EnvironmentVariables:
           - Name: PGPASSWORD
             Type: PARAMETER_STORE
-            Value: !Ref rApplicationpRdsPassword
+            Value: !Ref TargetRdsPassword
           - Name: DB_NAME
             Type: PLAINTEXT
-            Value: !Ref pRDSName
+            Value: !Ref TargetDbName
           - Name: TARGET_ENDPOINT
             Type: PLAINTEXT
-            Value: !Ref pRDSEndpoint
+            Value: !Ref TargetEndpoint
           - Name: DB_USER
             Type: PLAINTEXT
-            Value: !Ref pRDSUser
+            Value: !Ref TargetDbUser
           - Name: TASK_NAME
             Type: PLAINTEXT
-            Value: !If [cTaskName, !Ref 'AWS::StackName', !Ref pTaskName]
+            Value: !If [cTaskName, !Ref 'AWS::StackName', !Ref TaskName]
           - Name: SOURCE_ENDPOINT_ARN
             Type: PLAINTEXT
-            Value: !Ref pDmsSourceArn
+            Value: !Ref DmsSourceArn
           - Name: TARGET_ENDPOINT_ARN
             Type: PLAINTEXT
-            Value: !Ref pDmsTargetArn
+            Value: !Ref DmsTargetArn
           - Name: REPLICATION_INSTANCE_ARN
             Type: PLAINTEXT
-            Value: !Ref pDmsReplicationArn
+            Value: !Ref DmsReplicationArn
           - Name: SNS_TOPIC
             Type: PLAINTEXT
-            Value: !Ref rSnsApproval
+            Value: !Ref SnsApproval
           - Name: NOTIFY_SNS
             Type: PLAINTEXT
-            Value: !Ref rMigNotify
+            Value: !Ref MigrationNotification
         Image: 'aws/codebuild/standard:1.0'
         Type: LINUX_CONTAINER
       ServiceRole: !GetAtt
-        - rCodeBuildServiceRole
+        - CodeBuildServiceRole
         - Arn
       Source:
         BuildSpec: setup-target-schema.yml
@@ -374,11 +372,11 @@ Resources:
       TimeoutInMinutes: 60
       VpcConfig:
         SecurityGroupIds:
-          - !Ref pCodeBuildSecurityGroup
+          - !Ref CodeBuildSecurityGroup
         Subnets:
-          - !Ref pCodeBuildSubnet
-        VpcId: !Ref pCodeBuildVPC
-  rApplicationCodeBuildProd:
+          - !Ref CodeBuildSubnet
+        VpcId: !Ref CodeBuildVpc
+  CodeBuildPreCdc:
     Type: 'AWS::CodeBuild::Project'
     Condition: cCdc
     Properties:
@@ -390,26 +388,26 @@ Resources:
         EnvironmentVariables:
           - Name: PGPASSWORD
             Type: PARAMETER_STORE
-            Value: !Ref rApplicationpRdsPassword
+            Value: !Ref TargetRdsPassword
           - Name: DB_NAME
             Type: PLAINTEXT
-            Value: !Ref pRDSName
+            Value: !Ref TargetDbName
           - Name: TARGET_ENDPOINT
             Type: PLAINTEXT
-            Value: !Ref pRDSEndpoint
+            Value: !Ref TargetEndpoint
           - Name: DB_USER
             Type: PLAINTEXT
-            Value: !Ref pRDSUser
+            Value: !Ref TargetDbUser
           - Name: NOTIFY_SNS
             Type: PLAINTEXT
-            Value: !Ref rMigNotify
+            Value: !Ref MigrationNotification
           - Name: TASK_NAME
             Type: PLAINTEXT
-            Value: !If [cTaskName, !Ref 'AWS::StackName', !Ref pTaskName]
+            Value: !If [cTaskName, !Ref 'AWS::StackName', !Ref TaskName]
         Image: 'aws/codebuild/standard:1.0'
         Type: LINUX_CONTAINER
       ServiceRole: !GetAtt
-        - rCodeBuildServiceRole
+        - CodeBuildServiceRole
         - Arn
       Source:
         Type: CODEPIPELINE
@@ -422,11 +420,11 @@ Resources:
       TimeoutInMinutes: 10
       VpcConfig:
         SecurityGroupIds:
-          - !Ref pCodeBuildSecurityGroup
+          - !Ref CodeBuildSecurityGroup
         Subnets:
-          - !Ref pCodeBuildSubnet
-        VpcId: !Ref pCodeBuildVPC
-  rSampleCodeBuild:
+          - !Ref CodeBuildSubnet
+        VpcId: !Ref CodeBuildVpc
+  CodeBuildSetupSample:
     Type: 'AWS::CodeBuild::Project'
     Condition: cCreateSource
     Properties:
@@ -438,24 +436,24 @@ Resources:
         EnvironmentVariables:
           - Name: DB_PASSWORD
             Type: PARAMETER_STORE
-            Value: !Ref rSourceRdsPassword
+            Value: !Ref SourceRdsPassword
           - Name: DB_NAME
             Type: PLAINTEXT
-            Value: !Ref pSourceRDSName
+            Value: !Ref SourceDbName
           - Name: DB_HOST
             Type: PLAINTEXT
-            Value: !Ref pSourceRDSEndpoint
+            Value: !Ref SourceEndpoint
           - Name: DB_USER
             Type: PLAINTEXT
-            Value: !Ref pSourceRDSUser
+            Value: !Ref SourceDbUser
           - Name: NOTIFY_SNS
             Type: PLAINTEXT
-            Value: !Ref rMigNotify
+            Value: !Ref MigrationNotification
 
         Image: 'aws/codebuild/standard:1.0'
         Type: LINUX_CONTAINER
       ServiceRole: !GetAtt
-        - rCodeBuildServiceRole
+        - CodeBuildServiceRole
         - Arn
       Source:
         Type: CODEPIPELINE
@@ -498,26 +496,26 @@ Resources:
       TimeoutInMinutes: 100
       VpcConfig:
         SecurityGroupIds:
-          - !Ref pCodeBuildSecurityGroup
+          - !Ref CodeBuildSecurityGroup
         Subnets:
-          - !Ref pCodeBuildSubnet
-        VpcId: !Ref pCodeBuildVPC
-  rApplicationpRdsPassword:
+          - !Ref CodeBuildSubnet
+        VpcId: !Ref CodeBuildVpc
+  TargetRdsPassword:
     Type: 'AWS::SSM::Parameter'
     Properties:
       Description: SSM Parameter for RDS Password.
       Name: !Sub 'DMS-${AWS::StackName}'
       Type: String
-      Value: !Ref pRDSPassword
-  rSourceRdsPassword:
+      Value: !Ref TargetDbPassword
+  SourceRdsPassword:
     Type: 'AWS::SSM::Parameter'
     Condition : cCreateSource
     Properties:
       Description: SSM Parameter for Source RDS Password.
       Name: !Sub 'DMS-${AWS::StackName}-source'
       Type: String
-      Value: !Ref pSourceRDSPassword
-  rCodeBuildServiceRole:
+      Value: !Ref SourceDbPassword
+  CodeBuildServiceRole:
     Type: 'AWS::IAM::Role'
     Properties:
       AssumeRolePolicyDocument:
@@ -547,7 +545,7 @@ Resources:
                   - 's3:GetObjectVersion'
                 Effect: Allow
                 Resource:
-                  - !Sub 'arn:aws:s3:::${rArtifactStoreS3Location}*'
+                  - !Sub 'arn:aws:s3:::${ArtifactStoreS3Location}*'
               - Action:
                   - 'dms:StartReplicationTask'
                   - 'dms:CreateReplicationTask'
@@ -558,17 +556,17 @@ Resources:
               - Action: 'ssm:GetParameters'
                 Effect: Allow
                 Resource:
-                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${rApplicationpRdsPassword}
-                  - !If [cCreateSource, !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${rSourceRdsPassword}', !Ref 'AWS::NoValue']
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${TargetRdsPassword}
+                  - !If [cCreateSource, !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${SourceRdsPassword}', !Ref 'AWS::NoValue']
               - Action:
                   - 'sns:GetTopicAttributes'
                   - 'sns:Subscribe'
                 Effect: Allow
-                Resource: !Ref rSnsApproval
+                Resource: !Ref SnsApproval
               - Action:
                   - 'sns:Publish'
                 Effect: Allow
-                Resource: !Ref rMigNotify
+                Resource: !Ref MigrationNotification
               - Action:
                   - 'ec2:CreateNetworkInterface'
                   - 'ec2:DescribeDhcpOptions'
@@ -585,11 +583,11 @@ Resources:
                   StringEquals:
                     'ec2:AuthorizedService': codebuild.amazonaws.com
                     'ec2:Subnet':
-                      - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:subnet/${pCodeBuildSubnet}
+                      - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:subnet/${CodeBuildSubnet}
                 Effect: Allow
                 Resource: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*
             Version: 2012-10-17
-  rArtifactStoreS3Location:
+  ArtifactStoreS3Location:
     Type: 'AWS::S3::Bucket'
     Properties:
       Tags:
@@ -597,16 +595,16 @@ Resources:
           Value: !Sub 'Artifact store for - ${AWS::StackName}'
       VersioningConfiguration:
         Status: Enabled
-  rSnsApproval:
+  SnsApproval:
     Type: 'AWS::SNS::Topic'
-  rApplicationCodepipelineToken:
+  CodepipelineExecutionToken:
     Type: 'AWS::SSM::Parameter'
     Properties:
       Description: SSM Parameter for CodePipeline token.
       Name: !Sub 'pCodePipelineToken-${AWS::StackName}'
       Type: String
       Value: default
-  rApplicationLambdaRole:
+  MigrationLambdaRole:
     Type: 'AWS::IAM::Role'
     Properties:
       AssumeRolePolicyDocument:
@@ -630,14 +628,14 @@ Resources:
               - Action:
                   - 'sns:Publish'
                 Effect: Allow
-                Resource: !Ref rMigNotify
+                Resource: !Ref MigrationNotification
               - Action:
                   - 'ssm:GetParameter'
                   - 'ssm:PutParameter'
                 Effect: Allow
-                Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${rApplicationCodepipelineToken}
+                Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${CodepipelineExecutionToken}
             Version: 2012-10-17
-  rApplicationLambdaFunction:
+  MigrationLambdaFunction:
     Type: 'AWS::Lambda::Function'
     Properties:
       Code:
@@ -719,14 +717,14 @@ Resources:
 
       Environment:
         Variables:
-          codepipeline_token: !Ref rApplicationCodepipelineToken
-          pipeline_name: !Ref rAppPipeline
-          dms_task: !If [cTaskName, !Ref 'AWS::StackName', !Ref pTaskName]
-          notify_topic: !Ref rMigNotify
+          codepipeline_token: !Ref CodepipelineExecutionToken
+          pipeline_name: !Ref DmsPipeline
+          dms_task: !If [cTaskName, !Ref 'AWS::StackName', !Ref TaskName]
+          notify_topic: !Ref MigrationNotification
       Handler: index.lambda_handler
       Runtime: python3.6
       Role: !GetAtt
-        - rApplicationLambdaRole
+        - MigrationLambdaRole
         - Arn
       Timeout: 300
   CheckDmsEndpointStatus:
@@ -735,9 +733,9 @@ Resources:
       ServiceToken: !GetAtt
         - CheckDmsEndpointStatusFunction
         - Arn
-      ReplicationInstanceArn: !Ref pDmsReplicationArn
-      SourceArn: !Ref pDmsSourceArn
-      TargetArn: !Ref pDmsTargetArn
+      ReplicationInstanceArn: !Ref DmsReplicationArn
+      SourceArn: !Ref DmsSourceArn
+      TargetArn: !Ref DmsTargetArn
   CheckDmsEndpointStatusRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -822,24 +820,24 @@ Resources:
                   print ('Exception is %s' %(e))
               return e
 
-  rLambdaPermissionGrantSNS:
+  LambdaPermissionGrantSNS:
     Type: 'AWS::Lambda::Permission'
     Properties:
       FunctionName: !GetAtt
-        - rApplicationLambdaFunction
+        - MigrationLambdaFunction
         - Arn
       Action: 'lambda:InvokeFunction'
       Principal: sns.amazonaws.com
-      SourceArn: !Ref rSnsApproval
-  rSnsSubscription:
+      SourceArn: !Ref SnsApproval
+  SnsSubscription:
     Type: 'AWS::SNS::Subscription'
     Properties:
       Protocol: lambda
       Endpoint: !GetAtt
-        - rApplicationLambdaFunction
+        - MigrationLambdaFunction
         - Arn
-      TopicArn: !Ref rSnsApproval
-  rSnsTopicPolicy:
+      TopicArn: !Ref SnsApproval
+  SnsTopicPolicy:
     Type: 'AWS::SNS::TopicPolicy'
     Properties:
       PolicyDocument:
@@ -869,13 +867,13 @@ Resources:
             Principal:
               Service: dms.amazonaws.com
             Action: 'sns:Publish'
-            Resource: !Ref rSnsApproval
+            Resource: !Ref SnsApproval
       Topics:
-        - !Ref rSnsApproval
+        - !Ref SnsApproval
   ArtifactStoreCleanUp:
     Type: 'Custom::S3CleanUp'
     Properties:
-      DestBucket: !Ref rArtifactStoreS3Location
+      DestBucket: !Ref ArtifactStoreS3Location
       ServiceToken: !GetAtt
         - S3CleanUpFunction
         - Arn
@@ -905,7 +903,7 @@ Resources:
                   - 's3:GetObjectVersion'
                   - 's3:GetBucketVersioning'
                 Effect: Allow
-                Resource: !Sub 'arn:aws:s3:::${rArtifactStoreS3Location}*'
+                Resource: !Sub 'arn:aws:s3:::${ArtifactStoreS3Location}*'
             Version: 2012-10-17
           PolicyName: S3CleanupPolicy
       
@@ -980,9 +978,9 @@ Resources:
                   - 'codebuild:ListBuildsForProject'
                   - 'codebuild:BatchGetBuilds'
                 Resource: 
-                  - !Sub 'arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/${rApplicationCodeBuild}'
-                  - !If [cCreateSource, !Sub 'arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/${rSampleCodeBuild}', !Ref 'AWS::NoValue']
-                  - !If [cCdc, !Sub 'arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/${rApplicationCodeBuildProd}', !Ref 'AWS::NoValue']
+                  - !Sub 'arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/${CodeBuildSetupTarget}'
+                  - !If [cCreateSource, !Sub 'arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/${CodeBuildSetupSample}', !Ref 'AWS::NoValue']
+                  - !If [cCdc, !Sub 'arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/${CodeBuildPreCdc}', !Ref 'AWS::NoValue']
 
   
   DmsCleanupResource:
@@ -992,10 +990,10 @@ Resources:
       ServiceToken: !GetAtt
         - DmsCleanupFunction
         - Arn
-      TaskName: !If [cTaskName, !Ref 'AWS::StackName', !Ref pTaskName]
-      SampleCodeBuild : !If [cCreateSource,!Ref rSampleCodeBuild, !Ref 'AWS::NoValue']
-      PreCDC: !If [cCdc, !Ref rApplicationCodeBuildProd, !Ref 'AWS::NoValue']
-      SetupTarget: !Ref rApplicationCodeBuild
+      TaskName: !If [cTaskName, !Ref 'AWS::StackName', !Ref TaskName]
+      SampleCodeBuild : !If [cCreateSource,!Ref CodeBuildSetupSample, !Ref 'AWS::NoValue']
+      PreCDC: !If [cCdc, !Ref CodeBuildPreCdc, !Ref 'AWS::NoValue']
+      SetupTarget: !Ref CodeBuildSetupTarget
 
   DmsCleanupFunction:
     Condition: cCreateSource
@@ -1092,39 +1090,39 @@ Resources:
 
 
 Outputs:
-  oApplicationPipeline:
+  DmsPipeline:
     Description: Pipeline for DMS tasks
-    Value: !Ref rAppPipeline
-  oAppPipelineRole:
+    Value: !Ref DmsPipeline
+  DmsPipelineRole:
     Description: IAM Role used by CodePipeline
-    Value: !Ref rAppPipelineRole
-  oSnsTopicPolicy:
+    Value: !Ref DmsPipelineRole
+  SnsTopicPolicy:
     Description: SNS Topic Policy for DMS and CodePipeline Events
-    Value: !Ref rSnsTopicPolicy
-  oSnsSubscription:
+    Value: !Ref SnsTopicPolicy
+  SnsSubscription:
     Description: SNS Subscription to Lambda function
-    Value: !Ref rSnsSubscription
-  oApplicationLambdaFunction:
+    Value: !Ref SnsSubscription
+  MigrationLambdaFunction:
     Description: Lambda function for Approval Stage
-    Value: !Ref rApplicationLambdaFunction
-  oApplicationLambdaRole:
+    Value: !Ref MigrationLambdaFunction
+  MigrationLambdaRole:
     Description: IAM role used by Lambda function
-    Value: !Ref rApplicationLambdaRole
-  oApplicationCodepipelineToken:
+    Value: !Ref MigrationLambdaRole
+  CodepipelineExecutionToken:
     Description: Execution token for Codepipeline Approval stage
-    Value: !Ref rApplicationCodepipelineToken
-  oSnsApproval:
+    Value: !Ref CodepipelineExecutionToken
+  SnsApproval:
     Description: SNS Topic for DMS and CodePipeline events
-    Value: !Ref rSnsApproval
-  oArtifactStoreS3Location:
+    Value: !Ref SnsApproval
+  ArtifactStoreS3Location:
     Description: S3 bucket for Codepipeline artifacts
-    Value: !Ref rArtifactStoreS3Location
-  oCodeBuildServiceRole:
+    Value: !Ref ArtifactStoreS3Location
+  CodeBuildServiceRole:
     Description: CodeBuild service role
-    Value: !Ref rCodeBuildServiceRole
-  oApplicationCodeBuildProd:
+    Value: !Ref CodeBuildServiceRole
+  CodeBuildPreCdc:
     Description: PreCDC CodeBuild Project
-    Value: !If [cCdc, !Ref rApplicationCodeBuildProd, 'none' ]
-  oApplicationCodeBuild:
+    Value: !If [cCdc, !Ref CodeBuildPreCdc, 'none' ]
+  CodeBuildSetupTarget:
     Description: SetupTarget CodeBuild Project
-    Value: !Ref rApplicationCodeBuild
+    Value: !Ref CodeBuildSetupTarget
