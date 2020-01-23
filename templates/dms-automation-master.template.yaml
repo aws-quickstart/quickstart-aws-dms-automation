@@ -6,42 +6,21 @@ Metadata:
         default: Network configuration
       Parameters:
       - AvailabilityZones
-      - EnableBastion
       - KeyPairName
       - RemoteAccessCIDR
     - Label:
         default: Migration Setup
       Parameters:
-      - pCreateSample
-      - CreateNewReplicationInstance
-      - pMigNotify
-      - pFullLoadOnly
-      - pTaskName
+      - MigNotify
+      - TaskName
       - DBInstanceClass
       - SampleDbPassword
-      - pS3BucketName
-      - pS3BucketKey
     - Label:
         default: AWS DMS configuration for new replication instance
       Parameters:
         - DmsEngineVersion
         - DmsInstanceType
         - DmsMultiAz
-    - Label: 
-        default: AWS DMS configuration for new endpoints
-      Parameters:
-      - SourceDBName
-      - SourceEngine
-      - SourcePassword
-      - SourcePort
-      - SourceEndpointServer
-      - SourceUser
-      - TargetDBName
-      - TargetEngine
-      - TargetPassword
-      - TargetPort
-      - TargetEndpointServer
-      - TargetUser
     - Label: 
         default: AWS Quick Start configuration 
       Parameters:
@@ -50,10 +29,6 @@ Metadata:
       
     # Parameter Labels
     ParameterLabels:
-      pS3BucketName:
-        default: Migration bucket name
-      pS3BucketKey:
-        default: Migration bucket key
       DmsEngineVersion:
        default: AWS DMS Engine version
       DmsInstanceType:
@@ -64,61 +39,22 @@ Metadata:
         default: Sample DB password
       DBInstanceClass:
         default: Sample DB instance class
-      pFullLoadOnly:
-        default: Full load only
-      pCreateSample:
-        default: Create sample
-      pMigNotify:
+      MigNotify:
         default: Notification email
-      pTaskName:
+      TaskName:
         default: Task name
-      CreateNewReplicationInstance:
-        default: Create new replication instance?
-      SourceDBName:
-        default: Source DB name
-      SourceEngine:
-        default: Source DB engine
-      SourcePassword:
-        default: Source DB password
-      SourcePort:
-        default: Source DB port
-      SourceEndpointServer:
-        default: Source DB server
-      SourceUser:
-        default: Source user
-      TargetDBName:
-        default: Target DB name
-      TargetEngine:
-        default: Target DB engine
-      TargetPassword:
-        default: Target DB password
-      TargetPort:
-        default: Target DB port
-      TargetEndpointServer:
-        default: Target DB server
-      TargetUser:
-        default: Target DB user
       AvailabilityZones:
         default: Availability Zones
       KeyPairName:
         default: Key pair name
       RemoteAccessCIDR:
         default: Remote access CIDR
-      EnableBastion:
-        default: Enable bastion
       QSS3BucketName:
         default: Quickstart S3 Bucket Name
       QSS3KeyPrefix:
         default: Quickstart S3 Prefix
 Parameters:
-  pS3BucketName:
-    Type: String
-    Default: ''
-    Description: The name of the S3 bucket that contains all the zip files necessary for the migration. Leave this blank if you are deploying in sample mode.
-  pS3BucketKey:
-    Type: String
-    Default: ''
-    Description: S3 bucket key which has all the zip files necessary for migration. Leave this blank if you are deploying in sample mode.
+
   SampleDbPassword:
     AllowedPattern: >-
       ^(?=^.{8,255}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)((?=.*[^A-Za-z0-9])(?!.*[@/"'])).*$
@@ -146,101 +82,12 @@ Parameters:
       - db.r4.16xlarge
     ConstraintDescription: "Must select a valid database instance type."
     Default: db.r5.large
-  pCreateSample:
-    Type: String
-    Description: Population of a source database and a sample migration from Oracle to Aurora PostgreSQL. Choose no if you are deploying in production mode.
-    AllowedValues:
-      - 'yes'
-      - 'no'
-    Default: 'no'
-  pFullLoadOnly:
-    Type: String
-    Description: Full-load migration. Choose yes if the migration does not include CDC.
-    AllowedValues:
-      - 'yes'
-      - 'no'
-    Default: 'no'
-  pMigNotify:
+  MigNotify:
     Type: String
     Description: The email address that receives notifications on the migration status.
-  pTaskName:
+  TaskName:
     Type: String
     Description: The name of the AWS DMS task. If left empty, the stack name is used.
-    Default: ''
-  CreateNewReplicationInstance:
-    Type: String
-    Default: 'yes'
-    AllowedValues:
-      - 'yes'
-      - 'no'
-    Description: New replication instance. Choose no if you are planning to use an existing replication instance.
-  SourceDBName:
-    Type: String
-    Description: The name of the database or service name on the source server. Leave this blank if you are deploying in sample mode.
-    Default: ''
-  SourceEngine:
-    Type: String
-    Description: The database engine running on the source database. 
-    Default: oracle
-    AllowedValues:
-      - mysql
-      - oracle
-      - postgres
-      - mariadb
-      - db2
-      - azuredb
-      - sybase
-      - sqlserver
-  SourcePassword:
-    Type: String
-    Description: The password for the source database. Leave this blank if deploying in sample mode. Leave this blank if you are deploying in sample mode.
-    NoEcho: 'true'
-    Default: ''
-  SourcePort:
-    Type: String
-    Description: The port on which the source database is running.
-    Default: '1521'
-  SourceEndpointServer:
-    Type: String
-    Description: The source database hostname, endpoint URL, or IP address. Leave this blank if you are deploying in sample mode.
-    Default: ''
-  SourceUser:
-    Type: String
-    Description: The user name for accessing the source database. Leave this blank if you are deploying in sample mode.
-    Default: ''
-  TargetDBName:
-    Type: String
-    Description: The name of the database or service name on the target server. Leave this blank if you are deploying in sample mode.
-    Default: ''
-  TargetEngine:
-    Type: String
-    Description: The database engine running on the target database.
-    Default: aurora-postgresql
-    AllowedValues:
-      - mysql
-      - oracle
-      - postgres
-      - mariadb
-      - aurora
-      - aurora-postgresql
-      - redshift
-      - sqlserver
-  TargetPassword:
-    Type: String
-    Description: The password for the target database. Leave this blank if you are deploying in sample mode.
-    NoEcho: 'true'
-    Default: ''
-  TargetPort:
-    Type: String
-    Description: The port on which the target database is running. 
-    Default: '5432'
-  TargetEndpointServer:
-    Type: String
-    Description: (optional) The target database hostname, endpoint URL, or IP address. Leave this blank if you are deploying in sample mode.
-    Default: ''
-  TargetUser:
-    Type: String
-    Description: The user name for accessing the target database. Leave this blank if you are deploying in sample mode.
     Default: ''
   AvailabilityZones:
    Description: >-
@@ -258,13 +105,6 @@ Parameters:
     Description: "Allowed CIDR block for external SSH access."
     Default: 10.0.0.0/16
     Type: String
-  EnableBastion:
-    AllowedValues:
-      - "true"
-      - "false"
-    Default: "false"
-    Description: "Bastion host deployment. Choose true to deploy a bastion host."
-    Type: String
   QSS3BucketName:
     AllowedPattern: "^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$"
     ConstraintDescription: "Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-)."
@@ -278,10 +118,11 @@ Parameters:
     Description: "S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/)."
     Type: String
   DmsEngineVersion: 
-    Default: 3.1.3
+    Default: 3.1.4
     Type: String
     Description: AWS DMS replication engine version.
     AllowedValues:
+      - 3.1.4
       - 3.1.3
       - 2.4.5
       - 2.4.4
@@ -308,15 +149,6 @@ Parameters:
       - 'false'
 
       
-    
-Conditions:
-  CreateBastion: 
-    !Equals [!Ref EnableBastion, 'true']
-  CreateSample: !Equals
-    - !Ref pCreateSample
-    - 'yes'
-  CreateReplicationInst:
-    !Or [!Equals [!Ref CreateNewReplicationInstance, 'yes'], Condition: CreateSample]
 Resources:
 
   VPCStack:
@@ -331,7 +163,7 @@ Resources:
         NumberOfAZs: '2'
 
   BastionStack:
-    Condition: CreateBastion
+    # Condition: CreateBastion
     Type: 'AWS::CloudFormation::Stack'
     DependsOn: CopyFiles
     Properties:
@@ -345,7 +177,7 @@ Resources:
         VPCID: !GetAtt VPCStack.Outputs.VPCID
   
   SampleSecurityGroup:
-    Condition: CreateSample
+    # Condition: CreateSample
     Type: "AWS::EC2::SecurityGroup"
     Properties:
       GroupDescription: "Allow access to sample resources"
@@ -372,7 +204,7 @@ Resources:
         Value: !Sub SampleSGGroup-${AWS::StackName}
     
   SampleSecurityGroupIngress:
-    Condition: CreateSample
+    # Condition: CreateSample
     Properties:
       GroupId: !GetAtt 'SampleSecurityGroup.GroupId'
       IpProtocol: '-1'
@@ -380,32 +212,32 @@ Resources:
       Description: 'Self Reference'
     Type: 'AWS::EC2::SecurityGroupIngress'
 
-  VPCSecurityGroup:
-    Type: "AWS::EC2::SecurityGroup"
-    Properties:
-      GroupDescription: "Allow access to entire VPC"
-      SecurityGroupEgress:
-        -
-          CidrIp: 0.0.0.0/0
-          FromPort: -1
-          IpProtocol: '-1'
-          ToPort: -1
-      VpcId: !GetAtt VPCStack.Outputs.VPCID
-      Tags:
-      - Key: Name
-        Value: !Sub SampleSGGroup-${AWS::StackName}
+  # VPCSecurityGroup:
+  #   Type: "AWS::EC2::SecurityGroup"
+  #   Properties:
+  #     GroupDescription: "Allow access to entire VPC"
+  #     SecurityGroupEgress:
+  #       -
+  #         CidrIp: 0.0.0.0/0
+  #         FromPort: -1
+  #         IpProtocol: '-1'
+  #         ToPort: -1
+  #     VpcId: !GetAtt VPCStack.Outputs.VPCID
+  #     Tags:
+  #     - Key: Name
+  #       Value: !Sub SampleSGGroup-${AWS::StackName}
     
-  VPCSecurityGroupIngress:
-    Condition: CreateSample
-    Properties:
-      GroupId: !GetAtt 'VPCSecurityGroup.GroupId'
-      IpProtocol: '-1'
-      SourceSecurityGroupId: !Ref VPCSecurityGroup
-      Description: 'Self Reference'
-    Type: 'AWS::EC2::SecurityGroupIngress'
+  # VPCSecurityGroupIngress:
+  #   # Condition: CreateSample
+  #   Properties:
+  #     GroupId: !GetAtt 'VPCSecurityGroup.GroupId'
+  #     IpProtocol: '-1'
+  #     SourceSecurityGroupId: !Ref VPCSecurityGroup
+  #     Description: 'Self Reference'
+  #   Type: 'AWS::EC2::SecurityGroupIngress'
 
   AuroraStack:
-    Condition: CreateSample
+    # Condition: CreateSample
     Type: AWS::CloudFormation::Stack
     DependsOn: CopyFiles
     Properties:
@@ -417,7 +249,7 @@ Resources:
         CustomDBSecurityGroup: !GetAtt 'SampleSecurityGroup.GroupId'
         DBInstanceClass: !Ref DBInstanceClass
         DBMasterUserPassword: !Ref SampleDbPassword
-        NotificationList: !Ref pMigNotify
+        NotificationList: !Ref MigNotify
 
 
   DMSCodePiplineStack:
@@ -425,35 +257,31 @@ Resources:
     Properties:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-code-pipeline.template.yaml
       Parameters:
-        pMigNotify: !Ref pMigNotify
-        pTaskName: !Ref pTaskName
-        pCodeBuildVPC: !GetAtt VPCStack.Outputs.VPCID
-        pCodeBuildSubnet: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
-        pCodeBuildSecurityGroup: !If [CreateSample, !GetAtt 'SampleSecurityGroup.GroupId', !Ref VPCSecurityGroup]
-        pS3BucketName: !If [CreateSample, !Ref S3Bucket, !Ref pS3BucketName]
-        pS3BucketKey: 
-          !If 
-            - CreateSample 
-            - !Sub ${QSS3KeyPrefix}scripts/test.zip
-            - !Ref pS3BucketKey
-        pRDSEndpoint: !If [CreateSample, !GetAtt AuroraStack.Outputs.RDSEndPointAddress, !Ref TargetEndpointServer]
-        pRDSName: !If [CreateSample, 'AuroraPostgresDB' , !Ref TargetDBName]
-        pRDSUser: !If [CreateSample, 'pgadmin' , !Ref TargetUser]
-        pRDSPassword: !If [CreateSample, !Ref SampleDbPassword, !Ref TargetPassword]
-        pDmsSourceArn: !If [CreateSample, !GetAtt DMSReplicationStack.Outputs.SourceEndpointArn, !Ref 'AWS::NoValue']
-        pDmsTargetArn: !If [CreateSample, !GetAtt DMSReplicationStack.Outputs.TargetEndpointArn, !Ref 'AWS::NoValue']
-        pDmsReplicationArn: !If [CreateSample, !GetAtt DMSReplicationStack.Outputs.ReplicationInstanceArn, !Ref 'AWS::NoValue']
-        pCreateSample: !Ref pCreateSample
-        pFullLoadOnly: !Ref pFullLoadOnly
-        pSourceRDSEndpoint: !If [CreateSample, !GetAtt DMSSampleSourceSetup.Outputs.SampleSourceEndpoint, !Ref 'AWS::NoValue']
-        pSourceRDSName: !If [CreateSample, 'ORCL' ,!Ref 'AWS::NoValue']
-        pSourceRDSPassword: !If [CreateSample, !Ref SampleDbPassword, !Ref 'AWS::NoValue']
-        pSourceRDSUser: !If [CreateSample, 'master', !Ref 'AWS::NoValue']
+        MigNotify: !Ref MigNotify
+        TaskName: !Ref TaskName
+        CodeBuildVpc: !GetAtt VPCStack.Outputs.VPCID
+        CodeBuildSubnet: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
+        CodeBuildSecurityGroup: !GetAtt 'SampleSecurityGroup.GroupId'
+        S3BucketName: !Ref S3Bucket
+        S3BucketKey: !Sub ${QSS3KeyPrefix}scripts/test.zip
+        TargetEndpoint: !GetAtt AuroraStack.Outputs.RDSEndPointAddress
+        TargetDbName: 'AuroraPostgresDB'
+        TargetDbUser: 'pgadmin'
+        TargetDbPassword: !Ref SampleDbPassword
+        DmsSourceArn: !GetAtt DMSReplicationStack.Outputs.SourceEndpointArn
+        DmsTargetArn: !GetAtt DMSReplicationStack.Outputs.TargetEndpointArn
+        DmsReplicationArn: !GetAtt DMSReplicationStack.Outputs.ReplicationInstanceArn
+        CreateSample: 'yes'
+        FullLoadOnly: 'no'
+        SourceEndpoint: !GetAtt DMSSampleSourceSetup.Outputs.SampleSourceEndpoint
+        SourceDbName: 'ORCL'
+        SourceDbPassword: !Ref SampleDbPassword
+        SourceDbUser: 'master'
         
 
 
   DMSSampleSourceSetup:
-    Condition: CreateSample
+    # Condition: CreateSample
     Type: AWS::CloudFormation::Stack
     DependsOn: CopyFiles
     Properties:
@@ -468,43 +296,43 @@ Resources:
 
 
   DMSReplicationStack:
-    Condition: CreateReplicationInst
+    # Condition: CreateReplicationInst
     Type: AWS::CloudFormation::Stack
     DependsOn: CopyFiles
     Properties:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-replication-setup.template.yaml
       Parameters:
-        CreateNewReplicationInstance: !If [CreateSample, 'yes', !Ref CreateNewReplicationInstance]
-        ReplInstanceArn: !If [CreateSample, '', !Ref 'AWS::NoValue']
+        CreateNewReplicationInstance: 'yes'
+        ReplInstanceArn: ''
         PrivateSubnet1: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
         PrivateSubnet2: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
-        SecurityGroup: !If [CreateSample, !GetAtt 'SampleSecurityGroup.GroupId', !Ref VPCSecurityGroup]
+        SecurityGroup: !GetAtt 'SampleSecurityGroup.GroupId'
         MultiAz: !Ref DmsMultiAz
         InstanceType: !Ref DmsInstanceType
         EngineVersion: !Ref DmsEngineVersion
-        SourceDBName: !If [CreateSample, 'ORCL' , !Ref SourceDBName]
-        SourceEngine: !If [CreateSample, 'oracle' , !Ref SourceEngine]
-        SourcePassword: !If [CreateSample, !Ref SampleDbPassword , !Ref SourcePassword]
-        SourcePort: !If [CreateSample, '1521' , !Ref SourcePort]
-        SourceEndpointServer: !If [CreateSample, !GetAtt DMSSampleSourceSetup.Outputs.SampleSourceEndpoint, !Ref SourceEndpointServer]
-        SourceUser: !If [CreateSample, 'master' ,!Ref SourceUser]
-        TargetDBName: !If [CreateSample, 'AuroraPostgresDB' , !Ref TargetDBName]
-        TargetEngine: !If [CreateSample, 'aurora-postgresql' , !Ref TargetEngine]
-        TargetPassword: !If [CreateSample, !Ref SampleDbPassword , !Ref TargetPassword]
-        TargetPort: !If [CreateSample, '5432' , !Ref TargetPort]
-        TargetEndpointServer: !If [CreateSample, !GetAtt AuroraStack.Outputs.RDSEndPointAddress, !Ref TargetEndpointServer]
-        TargetUser: !If [CreateSample, 'pgadmin' , !Ref TargetUser]
+        SourceDBName:  'ORCL' 
+        SourceEngine: 'oracle' 
+        SourcePassword: !Ref SampleDbPassword 
+        SourcePort: '1521' 
+        SourceEndpointServer: !GetAtt DMSSampleSourceSetup.Outputs.SampleSourceEndpoint
+        SourceUser: 'master'
+        TargetDBName: 'AuroraPostgresDB'
+        TargetEngine: 'aurora-postgresql'
+        TargetPassword: !Ref SampleDbPassword
+        TargetPort: '5432'
+        TargetEndpointServer: !GetAtt AuroraStack.Outputs.RDSEndPointAddress
+        TargetUser: 'pgadmin' 
 
   S3Bucket:
     Type: AWS::S3::Bucket
-    Condition: CreateSample
+    # Condition: CreateSample
     Properties:
       VersioningConfiguration:
         Status: Enabled
   
   CopyS3FunctionRole:
     Type: AWS::IAM::Role
-    Condition: CreateSample
+    # Condition: CreateSample
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
@@ -540,7 +368,7 @@ Resources:
 
   CopyFiles:
     Type: 'Custom::CopyFiles'
-    Condition: CreateSample
+    # Condition: CreateSample
     Properties:
       ServiceToken: !GetAtt
         - CopyS3Function
@@ -553,7 +381,7 @@ Resources:
       
   CopyS3Function:
     Type: 'AWS::Lambda::Function'
-    Condition: CreateSample
+    # Condition: CreateSample
     Properties:
       Code:
         ZipFile: 
@@ -594,6 +422,86 @@ Resources:
                     cfnresponse.send(event, context, cfnresponse.FAILED, {}, '')
       Role: !GetAtt
         - CopyS3FunctionRole
+        - Arn
+      Runtime: python3.7
+      Handler: index.lambda_handler
+      Timeout: 600
+
+
+  CleanupVpcRole:
+    Type: AWS::IAM::Role
+    # Condition: CreateSample
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      Path: /
+      Policies:
+        - PolicyName: ec2-read-access
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ec2:DescribeNetworkInterfaces'
+                  - 'ec2:DeleteNetworkInterface'
+                Resource: '*'
+        
+  CleanupVpc:
+    Type: 'Custom::CleanupVpc'
+    # Condition: CreateSample
+    Properties:
+      ServiceToken: !GetAtt
+        - CleanupVpcFunction
+        - Arn
+      SecurityGroup: !Ref SG
+  
+  CleanupVpcFunction:
+    Type: 'AWS::Lambda::Function'
+    # Condition: CreateSample
+    Properties:
+      Code:
+        ZipFile: 
+            |
+            import cfnresponse
+            import boto3
+            import traceback
+            import json
+            import time
+
+            ec2 = boto3.client('ec2')
+            def lambda_handler(event, context):
+                
+                try:
+                    print('Received event: %s' % json.dumps(event, indent=2))
+                    sg = event['ResourceProperties']['SecurityGroup']
+                    if event['RequestType'] == 'Delete':                    
+                      time.sleep(5)
+                      print('Delete stack call, network interfaces will be cleaned up.')
+                      desc_net = ec2.describe_network_interfaces(Filters=[{'Name': 'group-id','Values': [sg]}])
+                      for net in desc_net['NetworkInterfaces']:
+                        netid = net['NetworkInterfaceId']
+                        print(netid)
+                        delete_net = ec2.delete_network_interface(NetworkInterfaceId=netid)
+                    elif event['RequestType'] == 'Update':
+                        print('Stack is getting updated nothing will be done')
+                    elif event['RequestType'] == 'Create':
+                        print('Stack is getting created nothing will be done')
+                    cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
+                except:
+                    print(traceback.print_exc())
+                    cfnresponse.send(event, context, cfnresponse.FAILED, {}, '')
+
+      Role: !GetAtt
+        - CleanupVpcRole
         - Arn
       Runtime: python3.7
       Handler: index.lambda_handler
