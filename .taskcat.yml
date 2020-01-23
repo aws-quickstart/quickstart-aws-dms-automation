@@ -11,8 +11,9 @@ tests:
       KeyPairName: aws_keypair
       QSS3BucketName: $[taskcat_autobucket]
       SampleDbPassword: Password1!
-      pCreateSample: 'yes'
-      pMigNotify: test@example.com
+      CreateSample: 'yes'
+      MigNotify: test@example.com
+      DmsMultiAz: 'false'
     regions:
     - us-east-1
     template: templates/dms-automation-master.template.yaml
