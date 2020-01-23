@@ -153,7 +153,9 @@ Resources:
 
   VPCStack:
     Type: 'AWS::CloudFormation::Stack'
-    DependsOn: CopyFiles
+    DependsOn: 
+      - CopyFiles
+      - CleanupVpc
     Properties:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-aws-vpc/templates/aws-vpc.template
       Parameters:
