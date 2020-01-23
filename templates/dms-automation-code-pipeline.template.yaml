@@ -460,19 +460,19 @@ Resources:
         BuildSpec: |
           version: 0.2
           phases:
-              install:
-                  runtime-versions:
-                      python: 3.8
-                  commands:
-                  - pip3 install awscli --upgrade
-                  - yum install git which -y
-                  - yum install -y http://yum.oracle.com/repo/OracleLinux/OL7/oracle/instantclient/x86_64/getPackage/oracle-instantclient18.3-basic-18.3.0.0.0-3.x86_64.rpm
-                  - yum install -y http://yum.oracle.com/repo/OracleLinux/OL7/oracle/instantclient/x86_64/getPackage/oracle-instantclient18.3-devel-18.3.0.0.0-3.x86_64.rpm
-                  - yum install -y http://yum.oracle.com/repo/OracleLinux/OL7/oracle/instantclient/x86_64/getPackage/oracle-instantclient18.3-sqlplus-18.3.0.0.0-3.x86_64.rpm
-                  - echo /usr/lib/oracle/18.3/client64/lib > /etc/ld.so.conf.d/oracle-instantclient18.3.conf && ldconfig
-                  - ls /etc/ld.so.conf.d/
-                  - PATH=$PATH:/usr/lib/oracle/18.3/client64/bin
-                  - which sqlplus
+            install:
+              runtime-versions:
+                python: 3.8
+              commands:
+              - pip3 install awscli --upgrade
+              - yum install git which -y
+              - yum install -y http://yum.oracle.com/repo/OracleLinux/OL7/oracle/instantclient/x86_64/getPackage/oracle-instantclient18.3-basic-18.3.0.0.0-3.x86_64.rpm
+              - yum install -y http://yum.oracle.com/repo/OracleLinux/OL7/oracle/instantclient/x86_64/getPackage/oracle-instantclient18.3-devel-18.3.0.0.0-3.x86_64.rpm
+              - yum install -y http://yum.oracle.com/repo/OracleLinux/OL7/oracle/instantclient/x86_64/getPackage/oracle-instantclient18.3-sqlplus-18.3.0.0.0-3.x86_64.rpm
+              - echo /usr/lib/oracle/18.3/client64/lib > /etc/ld.so.conf.d/oracle-instantclient18.3.conf && ldconfig
+              - ls /etc/ld.so.conf.d/
+              - PATH=$PATH:/usr/lib/oracle/18.3/client64/bin
+              - which sqlplus
             build:
               commands:
                 - git clone https://github.com/aws-samples/aws-database-migration-samples.git
