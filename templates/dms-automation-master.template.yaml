@@ -155,7 +155,7 @@ Resources:
     Type: 'AWS::CloudFormation::Stack'
     DependsOn: 
       - CopyFiles
-      - CleanupVpc
+      
     Properties:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-aws-vpc/templates/aws-vpc.template
       Parameters:
@@ -430,86 +430,4 @@ Resources:
       Timeout: 600
 
 
-  CleanupVpcRole:
-    Type: AWS::IAM::Role
-    # Condition: CreateSample
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-            Action:
-              - 'sts:AssumeRole'
-      ManagedPolicyArns:
-        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
-      Path: /
-      Policies:
-        - PolicyName: ec2-read-access
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ec2:DescribeNetworkInterfaces'
-                  - 'ec2:DeleteNetworkInterface'
-                Resource: '*'
-        
-  CleanupVpc:
-    Type: 'Custom::CleanupVpc'
-    DependsOn:
-      - DMSReplicationStack
-      - DMSSampleSourceSetup
-      - AuroraStack
-      - BastionStack
-      - DMSCodePiplineStack
-    Properties:
-      ServiceToken: !GetAtt
-        - CleanupVpcFunction
-        - Arn
-      SecurityGroup: !GetAtt 'SampleSecurityGroup.GroupId'
-  
-  CleanupVpcFunction:
-    Type: 'AWS::Lambda::Function'
-    # Condition: CreateSample
-    Properties:
-      Code:
-        ZipFile: 
-            |
-            import cfnresponse
-            import boto3
-            import traceback
-            import json
-            import time
 
-            ec2 = boto3.client('ec2')
-            def lambda_handler(event, context):
-                
-                try:
-                    print('Received event: %s' % json.dumps(event, indent=2))
-                    sg = event['ResourceProperties']['SecurityGroup']
-                    if event['RequestType'] == 'Delete':                    
-                      time.sleep(5)
-                      print('Delete stack call, network interfaces will be cleaned up.')
-                      desc_net = ec2.describe_network_interfaces(Filters=[{'Name': 'group-id','Values': [sg]}])
-                      for net in desc_net['NetworkInterfaces']:
-                        netid = net['NetworkInterfaceId']
-                        print(netid)
-                        delete_net = ec2.delete_network_interface(NetworkInterfaceId=netid)
-                    elif event['RequestType'] == 'Update':
-                        print('Stack is getting updated nothing will be done')
-                    elif event['RequestType'] == 'Create':
-                        print('Stack is getting created nothing will be done')
-                    cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
-                except:
-                    print(traceback.print_exc())
-                    cfnresponse.send(event, context, cfnresponse.FAILED, {}, '')
-
-      Role: !GetAtt
-        - CleanupVpcRole
-        - Arn
-      Runtime: python3.7
-      Handler: index.lambda_handler
-      Timeout: 600
