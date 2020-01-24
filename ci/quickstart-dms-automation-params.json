@@ -1,6 +1,6 @@
 [
   {
-    "ParameterKey": "pCreateSample",
+    "ParameterKey": "CreateSample",
     "ParameterValue": "yes"
   },
   {
@@ -20,7 +20,11 @@
     "ParameterValue": "$[taskcat_autobucket]"
   },
   {
-    "ParameterKey": "pMigNotify",
+    "ParameterKey": "DmsMultiAz",
+    "ParameterValue":"false"
+  },
+  {
+    "ParameterKey": "MigNotify",
     "ParameterValue": "test@example.com"
   }
 
