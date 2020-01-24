@@ -13,7 +13,7 @@
   },
   {
     "ParameterKey": "SampleDbPassword",
-    "ParameterValue": "P@ssword1"
+    "ParameterValue": "Password1!"
   },
   {
     "ParameterKey": "QSS3BucketName",
