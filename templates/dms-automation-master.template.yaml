@@ -165,7 +165,6 @@ Resources:
         NumberOfAZs: '2'
 
   BastionStack:
-    # Condition: CreateBastion
     Type: 'AWS::CloudFormation::Stack'
     DependsOn: CopyFiles
     Properties:
@@ -179,7 +178,6 @@ Resources:
         VPCID: !GetAtt VPCStack.Outputs.VPCID
   
   SampleSecurityGroup:
-    # Condition: CreateSample
     Type: "AWS::EC2::SecurityGroup"
     Properties:
       GroupDescription: "Allow access to sample resources"
@@ -206,7 +204,6 @@ Resources:
         Value: !Sub SampleSGGroup-${AWS::StackName}
     
   SampleSecurityGroupIngress:
-    # Condition: CreateSample
     Properties:
       GroupId: !GetAtt 'SampleSecurityGroup.GroupId'
       IpProtocol: '-1'
@@ -214,32 +211,7 @@ Resources:
       Description: 'Self Reference'
     Type: 'AWS::EC2::SecurityGroupIngress'
 
-  # VPCSecurityGroup:
-  #   Type: "AWS::EC2::SecurityGroup"
-  #   Properties:
-  #     GroupDescription: "Allow access to entire VPC"
-  #     SecurityGroupEgress:
-  #       -
-  #         CidrIp: 0.0.0.0/0
-  #         FromPort: -1
-  #         IpProtocol: '-1'
-  #         ToPort: -1
-  #     VpcId: !GetAtt VPCStack.Outputs.VPCID
-  #     Tags:
-  #     - Key: Name
-  #       Value: !Sub SampleSGGroup-${AWS::StackName}
-    
-  # VPCSecurityGroupIngress:
-  #   # Condition: CreateSample
-  #   Properties:
-  #     GroupId: !GetAtt 'VPCSecurityGroup.GroupId'
-  #     IpProtocol: '-1'
-  #     SourceSecurityGroupId: !Ref VPCSecurityGroup
-  #     Description: 'Self Reference'
-  #   Type: 'AWS::EC2::SecurityGroupIngress'
-
   AuroraStack:
-    # Condition: CreateSample
     Type: AWS::CloudFormation::Stack
     DependsOn: CopyFiles
     Properties:
@@ -283,7 +255,6 @@ Resources:
 
 
   DMSSampleSourceSetup:
-    # Condition: CreateSample
     Type: AWS::CloudFormation::Stack
     DependsOn: CopyFiles
     Properties:
@@ -327,14 +298,12 @@ Resources:
 
   S3Bucket:
     Type: AWS::S3::Bucket
-    # Condition: CreateSample
     Properties:
       VersioningConfiguration:
         Status: Enabled
   
   CopyS3FunctionRole:
     Type: AWS::IAM::Role
-    # Condition: CreateSample
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
@@ -370,7 +339,6 @@ Resources:
 
   CopyFiles:
     Type: 'Custom::CopyFiles'
-    # Condition: CreateSample
     Properties:
       ServiceToken: !GetAtt
         - CopyS3Function
@@ -383,7 +351,6 @@ Resources:
       
   CopyS3Function:
     Type: 'AWS::Lambda::Function'
-    # Condition: CreateSample
     Properties:
       Code:
         ZipFile: 
