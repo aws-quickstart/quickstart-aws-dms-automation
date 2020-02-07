@@ -17,15 +17,13 @@ Metadata:
     - Label:
         default: Migration setup
       Parameters:
-      - pCreateSample
       - CreateNewReplicationInstance
-      - pMigNotify
-      - pFullLoadOnly
-      - pTaskName
+      - MigNotify
+      - FullLoadOnly
+      - TaskName
       - DBInstanceClass
-      - SampleDbPassword
-      - pS3BucketName
-      - pS3BucketKey
+      - S3BucketName
+      - S3BucketKey
     - Label:
         default: AWS DMS configuration for new replication instance
       Parameters:
@@ -50,9 +48,9 @@ Metadata:
     - Label: 
         default: AWS DMS configuration for existing endpoints and replication instance
       Parameters:
-      - pDmsSourceArn
-      - pDmsTargetArn
-      - pDmsReplicationArn
+      - DmsSourceArn
+      - DmsTargetArn
+      - DmsReplicationArn
     - Label: 
         default: AWS Quick Start configuration 
       Parameters:
@@ -61,9 +59,9 @@ Metadata:
       
     # Parameter Labels
     ParameterLabels:
-      pS3BucketName:
+      S3BucketName:
         default: Migration bucket name
-      pS3BucketKey:
+      S3BucketKey:
         default: Migration bucket key
       DmsEngineVersion:
        default: AWS DMS Engine version
@@ -71,23 +69,21 @@ Metadata:
         default: Instance type
       DmsMultiAz:
         default: Multi AZ
-      SampleDbPassword:
-        default: Sample DB password
       DBInstanceClass:
         default: Sample DB instance class
-      pFullLoadOnly:
+      FullLoadOnly:
         default: Full load only
-      pCreateSample:
+      CreateSample:
         default: Create sample
-      pMigNotify:
+      MigNotify:
         default: Notification email
-      pTaskName:
+      TaskName:
         default: Task Name
-      pDmsSourceArn:
+      DmsSourceArn:
         default: AWS DMS source endpoint ARN
-      pDmsTargetArn:
+      DmsTargetArn:
         default: AWS DMS target endpoint ARN
-      pDmsReplicationArn:
+      DmsReplicationArn:
         default: AWS DMS replication instance endpoint ARN
       CreateNewReplicationInstance:
         default: Create new replication instance?
@@ -140,22 +136,14 @@ Metadata:
       QSS3KeyPrefix:
         default: Quickstart S3 Prefix
 Parameters:
-  pS3BucketName:
+  S3BucketName:
     Type: String
     Default: ''
     Description: The name of the S3 bucket that contains all the zip files necessary for the migration. Leave this blank if you are deploying in sample mode.
-  pS3BucketKey:
+  S3BucketKey:
     Type: String
     Default: ''
     Description: S3 bucket key which has all the zip files necessary for migration. Leave this blank if you are deploying in sample mode.
-  SampleDbPassword:
-    AllowedPattern: "(?=^.{6,255}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*"
-    ConstraintDescription: "Min 8 chars. Must include 1 uppercase, 1 lowercase, 1 number, 1 (non / @ \" ') symbol"
-    Description: "The database admin account password. The password must have a minimum of 8 characters and must include 1 uppercase letter, 1 lowercase letter, 1 number, and 1 (non / @ \" ') symbol."
-    MaxLength: "64"
-    MinLength: "8"
-    NoEcho: "True"
-    Type: String
   DBInstanceClass:
     Type: String
     Description: The instance size of the source database that will host the sample data. 
@@ -174,37 +162,30 @@ Parameters:
       - db.r4.16xlarge
     ConstraintDescription: "Must select a valid database instance type."
     Default: db.r5.large
-  pCreateSample:
-    Type: String
-    Description: Population of a source database and a sample migration from Oracle to Aurora PostgreSQL. Choose no if you are deploying in production mode.
-    AllowedValues:
-      - 'yes'
-      - 'no'
-    Default: 'no'
-  pFullLoadOnly:
+  FullLoadOnly:
     Type: String
     Description: Full-load migration. Choose yes if the migration does not include CDC.
     AllowedValues:
       - 'yes'
       - 'no'
     Default: 'no'
-  pMigNotify:
+  MigNotify:
     Type: String
     Description: The email address that receives notifications on the migration status.
-  pTaskName:
+  TaskName:
     Type: String
     Description: The name of the AWS DMS task. If left empty, the stack name is used.
     Default: ''
-  pDmsSourceArn:
+  DmsSourceArn:
     Type: String
     Description: The Amazon Resource Name (ARN) of the source endpoint which was successfully tested with replication instance. You must provide the ARN if you are deploying in production mode.
       instance
     Default: ''
-  pDmsTargetArn:
+  DmsTargetArn:
     Type: String
     Description: The Amazon Resource Name (ARN) of the source endpoint which was successfully tested with replication instance. You must provide the ARN if you are deploying in production mode.
     Default: ''
-  pDmsReplicationArn:
+  DmsReplicationArn:
     Type: String
     Description: The ARN of the replication instance that is used for the migration. You mjust include this if you are deploying in production mode or if CreateNewReplicationInstance is set to no.
     Default: ''
@@ -331,11 +312,11 @@ Parameters:
     Description: "S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/)."
     Type: String
   DmsEngineVersion: 
-    Default: 3.1.3
+    Default: 3.1.4
     Type: String
     Description: AWS DMS replication engine version.
     AllowedValues:
-      - 3.1.3
+      - 3.1.4
       - 2.4.5
       - 2.4.4
       - 2.4.3
@@ -364,9 +345,6 @@ Parameters:
 Conditions:
   CreateBastion: 
     !Equals [!Ref EnableBastion, 'true']
-  CreateSample: !Equals
-    - !Ref pCreateSample
-    - 'yes'
   CreateReplicationInst:
     !Or [!Equals [!Ref CreateNewReplicationInstance, 'yes'], Condition: CreateSample]
 Resources:
@@ -385,57 +363,6 @@ Resources:
         RemoteAccessCIDR: !Ref RemoteAccessCIDR
         VPCID: !Ref VPCID
   
-  SampleSecurityGroup:
-    Condition: CreateSample
-    Type: "AWS::EC2::SecurityGroup"
-    Properties:
-      GroupDescription: "Allow access to sample resources"
-      SecurityGroupEgress:
-        -
-          CidrIp: 0.0.0.0/0
-          FromPort: -1
-          IpProtocol: '-1'
-          ToPort: -1
-      SecurityGroupIngress:
-        -
-          CidrIp: !Ref RemoteAccessCIDR
-          FromPort: 1521
-          IpProtocol: tcp
-          ToPort: 1521
-        -
-          CidrIp: !Ref RemoteAccessCIDR
-          FromPort: 5432
-          IpProtocol: tcp
-          ToPort: 5432
-      VpcId: !GetAtt VPCStack.Outputs.VPCID
-      Tags:
-      - Key: Name
-        Value: !Sub SampleSGGroup-${AWS::StackName}
-    
-  SampleSecurityGroupIngress:
-    Condition: CreateSample
-    Properties:
-      GroupId: !GetAtt 'SampleSecurityGroup.GroupId'
-      IpProtocol: '-1'
-      SourceSecurityGroupId: !Ref SampleSecurityGroup
-      Description: 'Self Reference'
-    Type: 'AWS::EC2::SecurityGroupIngress'
-    
-
-  AuroraStack:
-    Condition: CreateSample
-    Type: AWS::CloudFormation::Stack
-    DependsOn: CopyFiles
-    Properties:
-      TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-amazon-aurora-postgresql/templates/aurora_postgres.template.yaml
-      Parameters:
-        Subnet1ID: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
-        Subnet2ID: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
-        VPCID: !GetAtt VPCStack.Outputs.VPCID
-        CustomDBSecurityGroup: !GetAtt 'SampleSecurityGroup.GroupId'
-        DBInstanceClass: !Ref DBInstanceClass
-        DBMasterUserPassword: !Ref SampleDbPassword
-        NotificationList: !Ref pMigNotify
 
 
   DMSCodePiplineStack:
@@ -443,176 +370,54 @@ Resources:
     Properties:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-code-pipeline.template.yaml
       Parameters:
-        pMigNotify: !Ref pMigNotify
-        pTaskName: !Ref pTaskName
-        pCodeBuildVPC: !GetAtt VPCStack.Outputs.VPCID
-        pCodeBuildSubnet: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
-        pCodeBuildSecurityGroup: !If [CreateSample, !GetAtt 'SampleSecurityGroup.GroupId', !Ref ExistingSgID]
-        pS3BucketName: !If [CreateSample, !Ref S3Bucket, !Ref pS3BucketName]
-        pS3BucketKey: 
-          !If 
-            - CreateSample 
-            - !Sub ${QSS3KeyPrefix}scripts/test.zip
-            - !Ref pS3BucketKey
-        pRDSEndpoint: !If [CreateSample, !GetAtt AuroraStack.Outputs.RDSEndPointAddress, !Ref TargetEndpointServer]
-        pRDSName: !If [CreateSample, 'AuroraPostgresDB' , !Ref TargetDBName]
-        pRDSUser: !If [CreateSample, 'pgadmin' , !Ref TargetUser]
-        pRDSPassword: !If [CreateSample, !Ref SampleDbPassword, !Ref TargetPassword]
-        pDmsSourceArn: !If [CreateSample, !GetAtt DMSReplicationStack.Outputs.SourceEndpointArn, !Ref pDmsSourceArn]
-        pDmsTargetArn: !If [CreateSample, !GetAtt DMSReplicationStack.Outputs.TargetEndpointArn, !Ref pDmsTargetArn]
-        pDmsReplicationArn: !If [CreateSample, !GetAtt DMSReplicationStack.Outputs.ReplicationInstanceArn, !Ref pDmsReplicationArn]
-        pCreateSample: !Ref pCreateSample
-        pFullLoadOnly: !Ref pFullLoadOnly
-        pSourceRDSEndpoint: !If [CreateSample, !GetAtt DMSSampleSourceSetup.Outputs.SampleSourceEndpoint, !Ref 'AWS::NoValue']
-        pSourceRDSName: !If [CreateSample, 'ORCL' ,!Ref 'AWS::NoValue']
-        pSourceRDSPassword: !If [CreateSample, !Ref SampleDbPassword, !Ref 'AWS::NoValue']
-        pSourceRDSUser: !If [CreateSample, 'master', !Ref 'AWS::NoValue']
+        MigNotify: !Ref MigNotify
+        TaskName: !Ref TaskName
+        CodeBuildVPC: !Ref VPCID
+        CodeBuildSubnet: !Ref PrivateSubnet1ID
+        CodeBuildSecurityGroup: !Ref ExistingSgID
+        S3BucketName: !Ref S3BucketName
+        S3BucketKey: !Ref S3BucketKey
+        RDSEndpoint: !Ref TargetEndpointServer
+        RDSName: !Ref TargetDBName
+        RDSUser: !Ref TargetUser
+        RDSPassword: !Ref TargetPassword
+        DmsSourceArn: !Ref DmsSourceArn
+        DmsTargetArn: !Ref DmsTargetArn
+        DmsReplicationArn: !Ref DmsReplicationArn
+        CreateSample: 'no'
+        FullLoadOnly: !Ref FullLoadOnly
+        SourceRDSEndpoint: !Ref 'AWS::NoValue'
+        SourceRDSName: !Ref 'AWS::NoValue'
+        SourceRDSPassword: !Ref 'AWS::NoValue'
+        SourceRDSUser: !Ref 'AWS::NoValue'
         
-
-
-  DMSSampleSourceSetup:
-    Condition: CreateSample
-    Type: AWS::CloudFormation::Stack
-    DependsOn: CopyFiles
-    Properties:
-      TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-sample-source.template.yaml
-      Parameters:
-        VPCID: !GetAtt VPCStack.Outputs.VPCID
-        Subnet1ID: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
-        Subnet2ID: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
-        DBInstanceClass: !Ref DBInstanceClass
-        DBMasterUserPassword: !Ref SampleDbPassword
-        CustomDBSecurityGroup: !GetAtt SampleSecurityGroup.GroupId
 
 
   DMSReplicationStack:
     Condition: CreateReplicationInst
     Type: AWS::CloudFormation::Stack
-    DependsOn: CopyFiles
     Properties:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/dms-automation-replication-setup.template.yaml
       Parameters:
-        CreateNewReplicationInstance: !If [CreateSample, 'yes', !Ref CreateNewReplicationInstance]
-        ReplInstanceArn: !Ref pDmsReplicationArn
-        PrivateSubnet1: !GetAtt VPCStack.Outputs.PrivateSubnet1AID
-        PrivateSubnet2: !GetAtt VPCStack.Outputs.PrivateSubnet2AID
-        SecurityGroup: !If [CreateSample, !GetAtt 'SampleSecurityGroup.GroupId', !Ref ExistingSgID]
+        CreateNewReplicationInstance: !Ref CreateNewReplicationInstance
+        ReplInstanceArn: !Ref DmsReplicationArn
+        PrivateSubnet1: !Ref PrivateSubnet1ID
+        PrivateSubnet2: !Ref PrivateSubnet2ID
+        SecurityGroup: !Ref ExistingSgID
         MultiAz: !Ref DmsMultiAz
         InstanceType: !Ref DmsInstanceType
         EngineVersion: !Ref DmsEngineVersion
-        SourceDBName: !If [CreateSample, 'ORCL' , !Ref SourceDBName]
-        SourceEngine: !If [CreateSample, 'oracle' , !Ref SourceEngine]
-        SourcePassword: !If [CreateSample, !Ref SampleDbPassword , !Ref SourcePassword]
-        SourcePort: !If [CreateSample, '1521' , !Ref SourcePort]
-        SourceEndpointServer: !If [CreateSample, !GetAtt DMSSampleSourceSetup.Outputs.SampleSourceEndpoint, !Ref SourceEndpointServer]
-        SourceUser: !If [CreateSample, 'master' ,!Ref SourceUser]
-        TargetDBName: !If [CreateSample, 'AuroraPostgresDB' , !Ref TargetDBName]
-        TargetEngine: !If [CreateSample, 'aurora-postgresql' , !Ref TargetEngine]
-        TargetPassword: !If [CreateSample, !Ref SampleDbPassword , !Ref TargetPassword]
-        TargetPort: !If [CreateSample, '5432' , !Ref TargetPort]
-        TargetEndpointServer: !If [CreateSample, !GetAtt AuroraStack.Outputs.RDSEndPointAddress, !Ref TargetEndpointServer]
-        TargetUser: !If [CreateSample, 'pgadmin' , !Ref TargetUser]
+        SourceDBName: !Ref SourceDBName
+        SourceEngine: !Ref SourceEngine
+        SourcePassword: !Ref SourcePassword
+        SourcePort: !Ref SourcePort
+        SourceEndpointServer: !Ref SourceEndpointServer
+        SourceUser: !Ref SourceUser
+        TargetDBName: !Ref TargetDBName
+        TargetEngine: !Ref TargetEngine
+        TargetPassword: !Ref TargetPassword
+        TargetPort: !Ref TargetPort
+        TargetEndpointServer: !Ref TargetEndpointServer
+        TargetUser: !Ref TargetUser
 
-  S3Bucket:
-    Type: AWS::S3::Bucket
-    Condition: CreateSample
-    Properties:
-      VersioningConfiguration:
-        Status: Enabled
   
-  CopyS3FunctionRole:
-    Type: AWS::IAM::Role
-    Condition: CreateSample
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-            Action:
-              - 'sts:AssumeRole'
-      ManagedPolicyArns:
-        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
-      Path: /
-      Policies:
-        - PolicyName: s3-access
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 's3:PutObject'
-                  - 's3:GetObject'
-                  - 's3:DeleteObject'
-                  - 's3:ListBucketVersion*'
-                  - 's3:ListBucket'
-                  - 's3:DeleteObjectVersion'
-                  - 's3:GetObjectVersion*'
-                Resource: 
-                  - !Sub 'arn:${AWS::Partition}:s3:::${S3Bucket}'
-                  - !Sub 'arn:${AWS::Partition}:s3:::${S3Bucket}/*'
-                  - !Sub 'arn:${AWS::Partition}:s3:::${QSS3BucketName}'
-                  - !Sub 'arn:${AWS::Partition}:s3:::${QSS3BucketName}/*'
-
-  CopyFiles:
-    Type: 'Custom::CopyFiles'
-    Condition: CreateSample
-    Properties:
-      ServiceToken: !GetAtt
-        - CopyS3Function
-        - Arn
-      Bucket: !Ref S3Bucket
-      Source: !Ref QSS3BucketName
-      Prefix: !Ref QSS3KeyPrefix
-      Objects:
-        - scripts/test.zip
-      
-  CopyS3Function:
-    Type: 'AWS::Lambda::Function'
-    Condition: CreateSample
-    Properties:
-      Code:
-        ZipFile: 
-            |
-            import cfnresponse
-            import boto3
-            import traceback
-            import json
-            import time
-            
-            def lambda_handler(event, context):
-                
-                try:
-                    print('Received event: %s' % json.dumps(event, indent=2))
-                    bucket = event['ResourceProperties']['Bucket']
-                    source_bucket = event['ResourceProperties']['Source']
-                    source_bucket_prefix = event['ResourceProperties']['Prefix']
-                    objects = event['ResourceProperties']['Objects']
-                    if event['RequestType'] == 'Delete':
-                        s3 = boto3.resource('s3')
-                        bucket = s3.Bucket(bucket)
-                        bucket.object_versions.all().delete()
-                        print('Delete stack in progress the bucket is emptied')
-                    elif event['RequestType'] == 'Update':
-                        print('Stack is getting updated nothing will be done')
-                    elif event['RequestType'] == 'Create':
-                        s3 = boto3.client('s3')
-                        for o in objects:
-                            key = source_bucket_prefix + o
-                            copy_source={
-                                'Bucket': source_bucket,
-                                'Key': key
-                            }
-                            s3.copy_object(CopySource=copy_source, Bucket=bucket, Key=key)
-                    cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, '')
-                except:
-                    print(traceback.print_exc())
-                    cfnresponse.send(event, context, cfnresponse.FAILED, {}, '')
-      Role: !GetAtt
-        - CopyS3FunctionRole
-        - Arn
-      Runtime: python3.7
-      Handler: index.lambda_handler
-      Timeout: 600
