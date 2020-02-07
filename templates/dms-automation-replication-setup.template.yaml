@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: |
   Create Database Migration Service Replication Instances.
-  Tests DMS replication endpoints connection to replication instance.
+  
 Metadata:
   LICENSE: Apache License Version 2.0
   'AWS::CloudFormation::Interface':
