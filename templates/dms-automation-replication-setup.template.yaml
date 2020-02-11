@@ -1,6 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: |
-  Create Database Migration Service Replication Instances.
+Description: This stack will be used to deploy the AWS DMS automation framework for existing VPC (qs-1qcbtheaa)
   
 Metadata:
   LICENSE: Apache License Version 2.0

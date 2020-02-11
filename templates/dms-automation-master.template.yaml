@@ -1,4 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
+Description: This stack will be used to deploy the AWS DMS automation framework for existing VPC (qs-1qcbthea2)
+
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:

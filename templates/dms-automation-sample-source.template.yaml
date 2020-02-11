@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Creates Sample Source Oracle RDS instance for sample migration.
+Description: Creates Sample Source Oracle RDS instance for sample migration (qs-1qcbtheai)
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
