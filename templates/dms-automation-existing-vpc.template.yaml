@@ -175,7 +175,7 @@ Parameters:
     Default: ''
   CreateNewReplicationInstance:
     Type: String
-    Default: 'yes'
+    Default: 'no'
     AllowedValues:
       - 'yes'
       - 'no'
