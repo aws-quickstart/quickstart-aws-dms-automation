@@ -141,7 +141,6 @@ Parameters:
     Description: The name of the S3 bucket that contains all the zip files necessary for the migration. If left blank, a versioned bucket is created for you.
   S3BucketKey:
     Type: String
-    Default: ''
     Description: S3 bucket key which has all the zip files necessary for migration. Although the bucket may not exist, this value will trigger the entire automation. Can be uploaded after the pipeline is created.
     AllowedPattern: ^(?!\s*$).+
     ConstraintDescription: 'Cannot be null or whitespace'
@@ -218,7 +217,6 @@ Parameters:
   TargetDBName:
     Type: String
     Description: The name of the database or service name on the target server. Leave this blank if you are deploying in sample mode.
-    Default: ''
     AllowedPattern: ^(?!\s*$).+
   TargetEngine:
     Type: String
@@ -237,7 +235,6 @@ Parameters:
     Type: String
     Description: The password for the target database. Leave this blank if you are deploying in sample mode.
     NoEcho: 'true'
-    Default: ''
     AllowedPattern: ^(?!\s*$).+
     ConstraintDescription: 'Cannot be null or whitespace'
   TargetPort:
@@ -250,13 +247,11 @@ Parameters:
   TargetEndpointServer:
     Type: String
     Description: The target database hostname, endpoint URL, or IP address. Leave this blank if you are deploying in sample mode. Leave this blank if you are deploying in sample mode.
-    Default: ''
     AllowedPattern: ^(?!\s*$).+
     ConstraintDescription: 'Cannot be null or whitespace'
   TargetUser:
     Type: String
     Description: The user name for accessing the target database. Leave this blank if you are deploying in sample mode.
-    Default: ''
     AllowedPattern: ^(?!\s*$).+
     ConstraintDescription: 'Cannot be null or whitespace'
   VPCID:
@@ -341,7 +336,7 @@ Conditions:
   CreateBastion: 
     !Equals [!Ref EnableBastion, 'true']
   CreateReplicationInst:
-    !Or [!Equals [!Ref CreateNewReplicationInstance, 'yes'], Condition: CreateSample]
+    !Equals [!Ref CreateNewReplicationInstance, 'yes']
   CreateBucket:
     !Equals [!Ref S3BucketName, '']
 Resources:
@@ -349,7 +344,6 @@ Resources:
   BastionStack:
     Condition: CreateBastion
     Type: 'AWS::CloudFormation::Stack'
-    DependsOn: CopyFiles
     Properties:
       TemplateURL: !Sub https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-linux-bastion/templates/linux-bastion.template
 
@@ -360,7 +354,7 @@ Resources:
         RemoteAccessCIDR: !Ref RemoteAccessCIDR
         VPCID: !Ref VPCID
   
-   S3Bucket:
+  S3Bucket:
     Condition: CreateBucket
     Type: AWS::S3::Bucket
     Properties:
@@ -392,7 +386,7 @@ Resources:
         SourceRDSEndpoint: !Ref SourceEndpointServer
         SourceRDSName: !Ref SourceDBName
         SourceRDSPassword: !Ref SourcePassword
-        SourceRDSUser: !!Ref SourceUser
+        SourceRDSUser: !Ref SourceUser
         
 
 
