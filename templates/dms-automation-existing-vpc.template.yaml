@@ -216,11 +216,11 @@ Parameters:
     Default: ''
   TargetDBName:
     Type: String
-    Description: The name of the database or service name on the target server. Leave this blank if you are deploying in sample mode.
+    Description: The name of the database or service name on the target server. 
     AllowedPattern: ^(?!\s*$).+
   TargetEngine:
     Type: String
-    Description: The database engine running on the target database.
+    Description: The database engine running on the target database. If existing DMS Target endpoint ARN is provided, this is ignored.
     Default: aurora-postgresql
     AllowedValues:
       - mysql
@@ -233,25 +233,25 @@ Parameters:
       - sqlserver
   TargetPassword:
     Type: String
-    Description: The password for the target database. Leave this blank if you are deploying in sample mode.
+    Description: The password for the target database. 
     NoEcho: 'true'
     AllowedPattern: ^(?!\s*$).+
     ConstraintDescription: 'Cannot be null or whitespace'
   TargetPort:
     Type: Number
-    Description: The port on which the target database is running.
+    Description: The port on which the target database is running. If existing DMS Target endpoint ARN is provided, this is ignored.
     Default: '5432'
     ConstraintDescription: 'Must be in the range [1115-65535].'
     MinValue: 1150
     MaxValue: 65535
   TargetEndpointServer:
     Type: String
-    Description: The target database hostname, endpoint URL, or IP address. Leave this blank if you are deploying in sample mode. Leave this blank if you are deploying in sample mode.
+    Description: The target database hostname, endpoint URL, or IP address. 
     AllowedPattern: ^(?!\s*$).+
     ConstraintDescription: 'Cannot be null or whitespace'
   TargetUser:
     Type: String
-    Description: The user name for accessing the target database. Leave this blank if you are deploying in sample mode.
+    Description: The user name for accessing the target database. 
     AllowedPattern: ^(?!\s*$).+
     ConstraintDescription: 'Cannot be null or whitespace'
   VPCID:
