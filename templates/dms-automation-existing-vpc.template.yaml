@@ -162,16 +162,16 @@ Parameters:
     Default: ''
   DmsSourceArn:
     Type: String
-    Description: The Amazon Resource Name (ARN) of the source endpoint which was successfully tested with replication instance. You must provide the ARN if you are deploying in production mode.
+    Description: The Amazon Resource Name (ARN) of the source endpoint which was successfully tested with replication instance. 
       instance
     Default: ''
   DmsTargetArn:
     Type: String
-    Description: The Amazon Resource Name (ARN) of the source endpoint which was successfully tested with replication instance. You must provide the ARN if you are deploying in production mode.
+    Description: The Amazon Resource Name (ARN) of the source endpoint which was successfully tested with replication instance. 
     Default: ''
   DmsReplicationArn:
     Type: String
-    Description: The ARN of the replication instance that is used for the migration. You mjust include this if you are deploying in production mode or if CreateNewReplicationInstance is set to no.
+    Description: The ARN of the replication instance that is used for the migration. You must include this if CreateNewReplicationInstance is set to no.
     Default: ''
   CreateNewReplicationInstance:
     Type: String
