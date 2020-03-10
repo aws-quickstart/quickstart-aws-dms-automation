@@ -32,7 +32,7 @@ Metadata:
         - DmsInstanceType
         - DmsMultiAz
     - Label: 
-        default: AWS DMS configuration for new endpoints
+        default: AWS DMS configuration for new source endpoints (optional)
       Parameters:
       - SourceDBName
       - SourceEngine
@@ -40,6 +40,9 @@ Metadata:
       - SourcePort
       - SourceEndpointServer
       - SourceUser
+    - Label: 
+        default: Target Endpoint Configuration
+      Parameters:
       - TargetDBName
       - TargetEngine
       - TargetPassword
@@ -369,24 +372,24 @@ Resources:
       Parameters:
         MigNotify: !Ref MigNotify
         TaskName: !Ref TaskName
-        CodeBuildVPC: !Ref VPCID
+        CodeBuildVpc: !Ref VPCID
         CodeBuildSubnet: !Ref PrivateSubnet1ID
         CodeBuildSecurityGroup: !Ref ExistingSgID
         S3BucketName: !If [CreateBucket, !Ref S3Bucket, !Ref S3BucketName]
         S3BucketKey: !Ref S3BucketKey
-        RDSEndpoint: !Ref TargetEndpointServer
-        RDSName: !Ref TargetDBName
-        RDSUser: !Ref TargetUser
-        RDSPassword: !Ref TargetPassword
+        TargetEndpoint: !Ref TargetEndpointServer
+        TargetDbName: !Ref TargetDBName
+        TargetDbUser: !Ref TargetUser
+        TargetDbPassword: !Ref TargetPassword
         DmsSourceArn: !If [CreateReplicationInst, !GetAtt DMSReplicationStack.Outputs.SourceEndpointArn ,!Ref DmsSourceArn]
         DmsTargetArn: !If [CreateReplicationInst, !GetAtt DMSReplicationStack.Outputs.TargetEndpointArn ,!Ref DmsTargetArn]
         DmsReplicationArn: !If [CreateReplicationInst, !GetAtt DMSReplicationStack.Outputs.ReplicationInstanceArn ,!Ref DmsReplicationArn]
         CreateSample: 'no'
         FullLoadOnly: !Ref FullLoadOnly
-        SourceRDSEndpoint: !Ref SourceEndpointServer
-        SourceRDSName: !Ref SourceDBName
-        SourceRDSPassword: !Ref SourcePassword
-        SourceRDSUser: !Ref SourceUser
+        SourceEndpoint: !Ref SourceEndpointServer
+        SourceDbName: !Ref SourceDBName
+        SourceDbPassword: !Ref SourcePassword
+        SourceDbUser: !Ref SourceUser 
         
 
 
