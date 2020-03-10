@@ -23,11 +23,10 @@ Metadata:
       - MigNotify
       - FullLoadOnly
       - TaskName
-      - DBInstanceClass
       - S3BucketName
       - S3BucketKey
     - Label:
-        default: AWS DMS configuration for new replication instance
+        default: AWS DMS configuration for new replication instance (optional)
       Parameters:
         - DmsEngineVersion
         - DmsInstanceType
@@ -71,8 +70,6 @@ Metadata:
         default: Instance type
       DmsMultiAz:
         default: Multi AZ
-      DBInstanceClass:
-        default: Sample DB instance class
       FullLoadOnly:
         default: Full load only
       CreateSample:
@@ -141,29 +138,13 @@ Parameters:
   S3BucketName:
     Type: String
     Default: ''
-    Description: The name of the S3 bucket that contains all the zip files necessary for the migration. Leave this blank if you are deploying in sample mode.
+    Description: The name of the S3 bucket that contains all the zip files necessary for the migration. If left blank, a versioned bucket is created for you.
   S3BucketKey:
     Type: String
     Default: ''
-    Description: S3 bucket key which has all the zip files necessary for migration. Leave this blank if you are deploying in sample mode.
-  DBInstanceClass:
-    Type: String
-    Description: The instance size of the source database that will host the sample data. 
-    AllowedValues:
-      - db.r5.large
-      - db.r5.xlarge
-      - db.r5.2xlarge
-      - db.r5.4xlarge
-      - db.r5.12xlarge
-      - db.r5.24xlarge
-      - db.r4.large
-      - db.r4.xlarge
-      - db.r4.2xlarge
-      - db.r4.4xlarge
-      - db.r4.8xlarge
-      - db.r4.16xlarge
-    ConstraintDescription: "Must select a valid database instance type."
-    Default: db.r5.large
+    Description: S3 bucket key which has all the zip files necessary for migration. Although the bucket may not exist, this value will trigger the entire automation. Can be uploaded after the pipeline is created.
+    AllowedPattern: ^(?!\s*$).+
+    ConstraintDescription: 'Cannot be null or whitespace'
   FullLoadOnly:
     Type: String
     Description: Full-load migration. Choose yes if the migration does not include CDC.
@@ -174,6 +155,8 @@ Parameters:
   MigNotify:
     Type: String
     Description: The email address that receives notifications on the migration status.
+    AllowedPattern: '^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$'
+    ConstraintDescription: provide a valid email address.
   TaskName:
     Type: String
     Description: The name of the AWS DMS task. If left empty, the stack name is used.
@@ -200,11 +183,11 @@ Parameters:
     Description: New replication instance. Choose no if you are planning to use an existing replication instance.
   SourceDBName:
     Type: String
-    Description: The name of the database or service name on the source server. Leave this blank if you are deploying in sample mode.
+    Description: The name of the database or service name on the source server. Leave this blank if you have an existing AWS DMS source endpoint ARN.
     Default: ''
   SourceEngine:
     Type: String
-    Description: The database engine running on the source database.
+    Description: The database engine running on the source database. If existing DMS Source endpoint ARN is provided, this is ignored.
     Default: oracle
     AllowedValues:
       - mysql
@@ -217,25 +200,26 @@ Parameters:
       - sqlserver
   SourcePassword:
     Type: String
-    Description: The password for the source database.Leave this blank if you are deploying in sample mode. 
+    Description: The password for the source database. Leave this blank if you have an existing AWS DMS Source endpoint ARN.
     NoEcho: 'true'
     Default: ''
   SourcePort:
     Type: String
-    Description: The port on which the source database is running.
+    Description: The port on which the source database is running. If existing DMS Source endpoint ARN is provided, this is ignored.
     Default: '1521'
   SourceEndpointServer:
     Type: String
-    Description: The source database hostname, endpoint URL, or IP address. Leave this blank if you are deploying in sample mode. Leave this blank if you are deploying in sample mode.
+    Description: The source database hostname, endpoint URL, or IP address. Leave this blank if you have an existing AWS DMS Source endpoint ARN.
     Default: ''
   SourceUser:
     Type: String
-    Description: The user name for accessing the source database.. Leave this blank if you are deploying in sample mode.
+    Description: The user name for accessing the source database.. Leave this blank if you have an existing AWS DMS Source endpoint ARN.
     Default: ''
   TargetDBName:
     Type: String
     Description: The name of the database or service name on the target server. Leave this blank if you are deploying in sample mode.
     Default: ''
+    AllowedPattern: ^(?!\s*$).+
   TargetEngine:
     Type: String
     Description: The database engine running on the target database.
@@ -254,18 +238,27 @@ Parameters:
     Description: The password for the target database. Leave this blank if you are deploying in sample mode.
     NoEcho: 'true'
     Default: ''
+    AllowedPattern: ^(?!\s*$).+
+    ConstraintDescription: 'Cannot be null or whitespace'
   TargetPort:
-    Type: String
+    Type: Number
     Description: The port on which the target database is running.
     Default: '5432'
+    ConstraintDescription: 'Must be in the range [1115-65535].'
+    MinValue: 1150
+    MaxValue: 65535
   TargetEndpointServer:
     Type: String
     Description: The target database hostname, endpoint URL, or IP address. Leave this blank if you are deploying in sample mode. Leave this blank if you are deploying in sample mode.
     Default: ''
+    AllowedPattern: ^(?!\s*$).+
+    ConstraintDescription: 'Cannot be null or whitespace'
   TargetUser:
     Type: String
     Description: The user name for accessing the target database. Leave this blank if you are deploying in sample mode.
     Default: ''
+    AllowedPattern: ^(?!\s*$).+
+    ConstraintDescription: 'Cannot be null or whitespace'
   VPCID:
     Description: The ID of your existing VPC (e.g., vpc-0343606e).
     Type: 'AWS::EC2::VPC::Id'
@@ -349,6 +342,8 @@ Conditions:
     !Equals [!Ref EnableBastion, 'true']
   CreateReplicationInst:
     !Or [!Equals [!Ref CreateNewReplicationInstance, 'yes'], Condition: CreateSample]
+  CreateBucket:
+    !Equals [!Ref S3BucketName, '']
 Resources:
 
   BastionStack:
@@ -365,6 +360,12 @@ Resources:
         RemoteAccessCIDR: !Ref RemoteAccessCIDR
         VPCID: !Ref VPCID
   
+   S3Bucket:
+    Condition: CreateBucket
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
 
 
   DMSCodePiplineStack:
@@ -377,21 +378,21 @@ Resources:
         CodeBuildVPC: !Ref VPCID
         CodeBuildSubnet: !Ref PrivateSubnet1ID
         CodeBuildSecurityGroup: !Ref ExistingSgID
-        S3BucketName: !Ref S3BucketName
+        S3BucketName: !If [CreateBucket, !Ref S3Bucket, !Ref S3BucketName]
         S3BucketKey: !Ref S3BucketKey
         RDSEndpoint: !Ref TargetEndpointServer
         RDSName: !Ref TargetDBName
         RDSUser: !Ref TargetUser
         RDSPassword: !Ref TargetPassword
-        DmsSourceArn: !Ref DmsSourceArn
-        DmsTargetArn: !Ref DmsTargetArn
-        DmsReplicationArn: !Ref DmsReplicationArn
+        DmsSourceArn: !If [CreateReplicationInst, !GetAtt DMSReplicationStack.Outputs.SourceEndpointArn ,!Ref DmsSourceArn]
+        DmsTargetArn: !If [CreateReplicationInst, !GetAtt DMSReplicationStack.Outputs.TargetEndpointArn ,!Ref DmsTargetArn]
+        DmsReplicationArn: !If [CreateReplicationInst, !GetAtt DMSReplicationStack.Outputs.ReplicationInstanceArn ,!Ref DmsReplicationArn]
         CreateSample: 'no'
         FullLoadOnly: !Ref FullLoadOnly
-        SourceRDSEndpoint: !Ref 'AWS::NoValue'
-        SourceRDSName: !Ref 'AWS::NoValue'
-        SourceRDSPassword: !Ref 'AWS::NoValue'
-        SourceRDSUser: !Ref 'AWS::NoValue'
+        SourceRDSEndpoint: !Ref SourceEndpointServer
+        SourceRDSName: !Ref SourceDBName
+        SourceRDSPassword: !Ref SourcePassword
+        SourceRDSUser: !!Ref SourceUser
         
 
 
@@ -422,4 +423,10 @@ Resources:
         TargetEndpointServer: !Ref TargetEndpointServer
         TargetUser: !Ref TargetUser
 
-  
+Outputs:
+  MigrationBucket:
+    Description: S3 Bucket for triggering the automation
+    Value: !Ref S3Bucket
+  MigrationPipeline:
+    Description: CodePipeline for DMS migration
+    Value: !GetAtt DMSCodePiplineStack.Outputs.DmsPipeline
