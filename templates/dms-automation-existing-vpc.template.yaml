@@ -182,7 +182,7 @@ Parameters:
     Description: New replication instance. Choose no if you are planning to use an existing replication instance.
   SourceDBName:
     Type: String
-    Description: The name of the database or service name on the source server. Leave this blank if you have an existing AWS DMS source endpoint ARN.
+    Description: The name of the database or service name on the source server. Leave this blank if you have an existing AWS DMS Source endpoint ARN.
     Default: ''
   SourceEngine:
     Type: String
@@ -274,7 +274,7 @@ Parameters:
     Type: 'AWS::EC2::SecurityGroup::Id'
   KeyPairName: 
     ConstraintDescription: "The name of an existing public/private key pair, for connecting to your instance."
-    Description: Name of an existing public/private key pair, for connecting to your instance.
+    Description: The name of an existing public/private key pair, for connecting to your instance.
     Type: "AWS::EC2::KeyPair::KeyName"
   RemoteAccessCIDR:
     AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/([0-9]|[1-2][0-9]|3[0-2]))$"
@@ -287,7 +287,7 @@ Parameters:
       - "true"
       - "false"
     Default: "false"
-    Description: "Bastion host deployment. Choose false if the existing public subnets already contain a bastion host."
+    Description: "Bastion host deployment. Choose true to create a bastion stack."
     Type: String
   QSS3BucketName:
     AllowedPattern: "^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$"
@@ -304,7 +304,7 @@ Parameters:
   DmsEngineVersion: 
     Default: 3.1.4
     Type: String
-    Description: AWS DMS replication engine version.
+    Description: AWS DMS replication engine version. If existing replication instance ARN is provided, this is ignored.
     AllowedValues:
       - 3.1.4
       - 2.4.5
@@ -313,7 +313,7 @@ Parameters:
   DmsInstanceType:
     Default: dms.c4.large
     Type: String
-    Description: AWS DMS replication instance size.
+    Description: AWS DMS replication instance size. If existing replication instance ARN is provided, this is ignored.
     AllowedValues:
       - dms.t2.micro
       - dms.t2.small
@@ -326,7 +326,7 @@ Parameters:
   DmsMultiAz: 
     Default: 'true'
     Type: String
-    Description: AWS DMS replication instance deployment across multiple Availability Zones.
+    Description: AWS DMS replication instance deployment across multiple Availability Zones. If existing replication instance ARN is provided, this is ignored.
     AllowedValues:
       - 'true'
       - 'false'
