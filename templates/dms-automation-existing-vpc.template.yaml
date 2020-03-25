@@ -423,7 +423,7 @@ Resources:
 Outputs:
   MigrationBucket:
     Description: S3 Bucket for triggering the automation
-    Value: !Ref S3Bucket
+    Value: !If [CreateBucket, !Ref S3Bucket, !Ref S3BucketName]
   MigrationPipeline:
     Description: CodePipeline for DMS migration
     Value: !GetAtt DMSCodePiplineStack.Outputs.DmsPipeline
