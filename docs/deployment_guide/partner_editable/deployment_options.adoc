@@ -1,0 +1,5 @@
+// Edit this placeholder text as necessary to describe the deployment options.
+
+This Partner Solution deploys Database Migration Service Automation Framework into an existing VPC. This option provisions AWS DMS Automation Framework in your existing AWS infrastructure. Typically, the network must be set up to allow traffic from on-premises resources to the VPC. This Quick Start assumes that the VPC where the migration is taking place is connected to the on-premises resources.
+
+* https://fwd.aws/7g3my?[Deploy AWS DMS Automation Framework in production mode in an existing VPC on AWS]

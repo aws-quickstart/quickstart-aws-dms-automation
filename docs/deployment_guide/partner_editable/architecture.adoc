@@ -1,0 +1,26 @@
+:xrefstyle: short
+
+
+
+Deploying this Partner Solution with default parameters builds the following AWS DMS Automation Framework environment in an existing virtual private cloud (VPC) in the AWS Cloud.
+
+[#architecture1]
+.Partner Solution architecture for {partner-product-short-name} on AWS
+image::../docs/deployment_guide/images/image2.png[Architecture]
+
+The Quick Start sets up the following:
+
+* A highly available architecture that spans two Availability Zones*
+* In the private subnets:
+
+* CodeBuild to deploy code into the target Amazon RDS database
+* An AWS DMS replication instance*
+
+* AWS DMS endpoints for migrating data and replicating on-going changes from source to target**
+* A versioned S3 bucket, used as a source to trigger AWS CodePipeline
+* Amazon SNS, which streams CodePipeline and AWS DMS events to Lambda and to the end user over email
+* Parameter Store for storing the CodePipeline execution token.
+
+* The default is not to create a new replication instance, but you have the option to create one.
+
+** The template will prompt you for your existing AWS DMS resource configuration.

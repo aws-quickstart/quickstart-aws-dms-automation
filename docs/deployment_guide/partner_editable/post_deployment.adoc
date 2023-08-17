@@ -1,0 +1,5 @@
+// Include any postdeployment steps here, such as steps necessary to test that the deployment was successful. If there are no postdeployment steps, leave this file empty.
+
+== Postdeployment steps
+
+For detailed information about working with AWS DMS, see the https://docs.aws.amazon.com/dms/latest/userguide/Welcome.html[AWS DMS User Guide].
