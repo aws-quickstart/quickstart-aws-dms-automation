@@ -1,0 +1,83 @@
+This guide covers the information you need to deploy the {partner-product-name} Partner Solution in the AWS Cloud.
+
+// Fill in the info in <angle brackets> for use on the landing page only: 
+This Partner Solution reference deployment guide provides step-by-step instructions for deploying an automated framework to migrate relational databases by using AWS Database Migration Service (AWS DMS) on the AWS Cloud.
+
+This Partner Solution is for users who need to do one of the following:
+
+* Separate AWS DMS migration tasks into two phases (full load and change data capture, or CDC) because they need to run structured query language (SQL) code on the target database in between the two phases
+* Require, due to environment or change-management restrictions, a fully automated code deployment framework for relational database migrations that is repeatable and customizable.
+
+You can use this Partner Solution as a building block in the entire migration process. This template can build only components you need and set up a workflow that notifies you of the status of the migration.
+
+=== AWS DMS
+
+AWS DMS can perform one-time database migration or continuous replication. The source database remains fully operational while the migration takes place, and minimal downtime is required to cut over from source to target. AWS DMS migrates only the data, tables, and primary keys to the target database. Other dependencies, such as triggers, procedures, functions, and constraints like foreign keys, are not migrated and must be created. In heterogeneous migrations, the database schema, dependencies, and constraints can be created automatically by using the AWS Schema Conversion Tool (AWS SCT).
+
+Before migrating the workloads, you must run AWS SCT to generate code for all the dependencies and constraints. The target database needs dependencies and constraints in place before it can replicate ongoing changes from the source database to the target database. Typically, after a full load is complete, you can use options in AWS DMS to stop the task before or after cached changes are applied. This you to create necessary dependencies (functions, triggers, constraints, and secondary indexes) before the ongoing and cached changes are replicated from source to target. When the DMS task reaches the point where ongoing changes are being replicated from source to target, the actual database cutover can take place.
+
+Completing full load and enabling CDC involve manual steps, including the following.
+
+* Applying schema changes (either from AWS SCT or manually)
+* Creating the AWS DMS task with full load and CDC
+* Waiting for the AWS DMS task to finish full load
+* Running scripts in the target database to create dependencies for CDC and then resuming the AWS DMS task to allow CDC
+
+These manual steps must be implemented via the AWS Management Console or AWS Command Line Interface (AWS CLI) based on events from the AWS DMS task.
+
+=== DMS Automation Framework
+
+The automation framework in this Quick Start takes an input into a versioned Amazon Simple Storage Service (Amazon S3) bucket with all the JavaScript Object Notation (JSON) and SQL files necessary for migration. The automation framework then creates a pipeline that performs the manual steps until CDC is implemented. After CDC is implemented, you can delete the CloudFormation stack.
+
+The Quick Start focuses on migration efforts to plan a pre-production or production migration from on-premises infrastructure to Amazon Relational Database Service (Amazon RDS) using AWS DMS. After you analyze the SCT report, finalize the type of AWS DMS task (Full Load only or Full Load and CDC) and change the SQL to fit the target database, you can use this Quick Start. It creates an AWS DMS replication instance if required, and it checks the endpoints’ connectivity to the AWS DMS replication instance. The framework is triggered upon on an archive with the task definition, table mappings, and SQL that runs between Full Load and CDC in an S3 bucket. You can see an example of a typical framework archive in the https://github.com/aws-quickstart/quickstart-aws-dms-automation/tree/master/scripts/sample[GitHub repository].
+
+The typical framework archive includes two JSON files for the AWS DMS task. The task-settings01.json file is used to set the task and enable logging. The table-mappings.json file is used to select and transform data from the source to the target. The archive also includes two YAML files for AWS CodeBuild, setup-target-schema.yml and pre-CDC-build.yml. These files replace the default buildspec.yml files for CodeBuild and are used in the SetupTarget and PreCDC stages, respectively.
+
+For your deployments, you can use the same setup as the typical framework archive or you can change the file names. You can also change the contents of the files to suit your needs. For example, if you are migrating from Oracle to Aurora MySQL, you can change the client from psql to mysql in setup-target-schema.yml and pre-CDC-build.yml. If you change the file name, make sure to reflect that in the CodeBuild and CodePipeline resources in Quick Start template.
+
+The framework consists mainly of AWS CodePipeline, AWS Lambda, Amazon Simple Notification Service (Amazon SNS), and AWS Systems Manager to reduce the number of manual steps. The framework uses AWS Systems Manager Parameter Store to store credentials and the execution token for CodePipeline. CodePipeline creates the automation workflow. Amazon SNS keeps tracks of changes in AWS DMS tasks to trigger Lambda or notify the user.
+
+AWS DMS Automation Framework includes the following stages:
+
+[arabic]
+. *Source* stage:
+
+This is the code location that triggers the pipeline to start the next step. All the code that was generated using AWS SCT for dependencies and the JSON files to create the AWS DMS task, map tables, etc., are in the archive that is located here.
+
+[arabic, start=2]
+. *SetupTarget* stage:
+
+This stage replaces the following the manual steps:
+
+[loweralpha]
+. Create an empty schema (optional; if the schema is already created, this stage can be commented out before uploading setup-target-schema.yml).
+. Create the AWS DMS task.
+. Create an event notification stream to get failure or state change messages specifically for the AWS DMS task.
+. Start the task.
+. Send a notification that the task has started.
+
+____
+The Amazon SNS event notification topic sends messages to Lambda. Lambda parses the messages to determine whether the task is running as expected or has failed for any reason.
+____
+
+[arabic, start=3]
+. *ApprovalForDMS* stage:
+
+This is a typical https://docs.aws.amazon.com/codepipeline/latest/userguide/approvals-action-add.html[manual approval step] in CodePipeline. It removes the need to monitor the AWS DMS task and then, on successful completion, go to the next step. Once the *SetupTarget* stage is complete, the pipeline moves to this step.
+
+As soon as the pipeline is in this step, an SNS topic is sent with an execution token to approve this step. This message is parsed by Lambda and the pipeline approval token is placed in Parameter Store. Even though the pipeline is in this step, the AWS DMS task is still be running its initial full load. When the AWS DMS task finishes its full load, it has a state change that triggers an Amazon SNS message to Lambda. Lambda checks the message from AWS DMS. If the task is stopped after full load, it puts an approval in CodePipeline or it puts a rejection.
+
+[arabic, start=4]
+. *PreCDC* stage:
+
+After full load is complete, the task is stopped according to the AWS DMS task settings. Then the scripts generated by AWS SCT are deployed into the target database to install dependencies. After installation of the dependencies is complete, the AWS DMS task is resumed. The end user is also notified that the task is resumed. This step eliminates the manual step to log in to the target database to run code for CDC.
+
+[#Overview1]
+.AWS DMS Automation Framework workflow
+image::../docs/deployment_guide/images/image1.png[OVerview]
+
+// Deploying this solution does not guarantee an organization’s compliance with any laws, certifications, policies, or other regulations. [Uncomment this statement only for solutions that relate to compliance. We'll add the corresponding reference part to the landing page and get legal approval before publishing.]
+
+// For advanced information about the product, troubleshooting, or additional functionality, refer to the https://{partner-solution-github-org}.github.io/{partner-solution-project-name}/operational/index.html[Operational Guide^].
+
+// For information about using this Partner Solution for migrations, refer to the https://{partner-solution-github-org}.github.io/{partner-solution-project-name}/migration/index.html[Migration Guide^].
